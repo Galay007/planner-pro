@@ -3,6 +3,7 @@ import { Task } from "@/types/task";
 import { SchedulerToolbar } from "@/components/scheduler/SchedulerToolbar";
 import { SchedulerTable } from "@/components/scheduler/SchedulerTable";
 import { SchedulerFilters } from "@/components/scheduler/SchedulerFilters";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,8 +14,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export type ColumnFilters = Record<string, Set<string>>;
+
+type NotificationChannel = "" | "email" | "telegram";
+
+type TaskPropertiesDraft = {
+  launchDay: string;
+  launchTime: string;
+  endDay: string;
+  endTime: string;
+  fileType: "SQL" | "PY" | "BAT";
+  connection: string;
+  notificationChannel: NotificationChannel;
+  notificationValue: string;
+  cronHours: string;
+  cronMinutes: string;
+  cronWeekdays: string;
+  cronMonthDays: string;
+  cronMonths: string;
+};
 
 const Scheduler = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -26,6 +62,9 @@ const Scheduler = () => {
   const taskSnapshotsRef = useRef<Map<number, Task>>(new Map());
   const [search, setSearch] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [propertiesDraft, setPropertiesDraft] = useState<TaskPropertiesDraft | null>(null);
+  const [propertiesById, setPropertiesById] = useState<Record<number, TaskPropertiesDraft>>({});
 
   const getNextLaunchLabel = (t: Task) => {
     if (t.properties === "unset") return "—";
@@ -65,6 +104,27 @@ const Scheduler = () => {
     setSearch("");
     setColumnFilters({});
   }, []);
+
+  const buildDefaultProperties = () => {
+    const now = new Date();
+    const dateValue = now.toISOString().slice(0, 10);
+    const timeValue = now.toTimeString().slice(0, 8);
+    return {
+      launchDay: dateValue,
+      launchTime: timeValue,
+      endDay: dateValue,
+      endTime: timeValue,
+      fileType: "SQL",
+      connection: "",
+      notificationChannel: "",
+      notificationValue: "",
+      cronHours: "*",
+      cronMinutes: "*",
+      cronWeekdays: "*",
+      cronMonthDays: "*",
+      cronMonths: "*",
+    } satisfies TaskPropertiesDraft;
+  };
 
   const addTask = useCallback(() => {
     const newTask: Task = {
@@ -157,6 +217,47 @@ const Scheduler = () => {
     [selectedId, selectedTask?.modified]
   );
 
+  const handleOpenProperties = useCallback(() => {
+    if (selectedId === null) return;
+    const existing = propertiesById[selectedId];
+    setPropertiesDraft(existing ? { ...existing } : buildDefaultProperties());
+    setPropertiesOpen(true);
+  }, [propertiesById, selectedId]);
+
+  const handleSaveProperties = useCallback(() => {
+    if (selectedId === null || !propertiesDraft) return;
+    setPropertiesById((prev) => ({ ...prev, [selectedId]: propertiesDraft }));
+    updateTask(selectedId, { properties: "set" });
+    setPropertiesOpen(false);
+  }, [propertiesDraft, selectedId, updateTask]);
+
+  const sanitizeCron = (value: string) => value.replace(/[^0-9,*/-]/g, "");
+
+  const clampCronValue = (value: string, max: number) => {
+    let out = "";
+    let currentNumber = "";
+    const pushNumber = (num: string) => {
+      if (num.length === 0) return "";
+      const n = Number(num);
+      if (Number.isNaN(n)) return "";
+      if (n > max) return String(max);
+      return num;
+    };
+    for (const ch of value) {
+      if (/\d/.test(ch)) {
+        currentNumber += ch;
+      } else {
+        out += pushNumber(currentNumber);
+        currentNumber = "";
+        out += ch;
+      }
+    }
+    out += pushNumber(currentNumber);
+    return out;
+  };
+
+  const sanitizeCronWithMax = (value: string, max: number) => clampCronValue(sanitizeCron(value), max);
+
   return (
     <div className="flex flex-col h-full gap-3">
       <div className="flex items-center justify-between">
@@ -168,7 +269,7 @@ const Scheduler = () => {
         onAdd={addTask}
         onRemove={removeTask}
         onSave={handleSaveClick}
-        onProperties={() => {}}
+        onProperties={handleOpenProperties}
         hasSelection={selectedId !== null}
         hasModified={selectedModified}
       />
@@ -184,6 +285,224 @@ const Scheduler = () => {
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
       />
+
+      <Dialog open={propertiesOpen} onOpenChange={setPropertiesOpen}>
+        <DialogContent
+          className="max-w-3xl"
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="flex-row items-center justify-between space-y-0">
+            <DialogTitle>
+              {selectedId !== null ? `Свойства задачи ID ${selectedId}` : "Свойства задачи"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="launch-day">День запуска</Label>
+                <Input
+                  id="launch-day"
+                  type="date"
+                  className="bg-white"
+                  value={propertiesDraft?.launchDay ?? ""}
+                  onChange={(e) => propertiesDraft && setPropertiesDraft({ ...propertiesDraft, launchDay: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="launch-time">Время запуска</Label>
+                <Input
+                  id="launch-time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="HH:MM:SS"
+                  className="bg-white"
+                  value={propertiesDraft?.launchTime ?? ""}
+                  onChange={(e) => {
+                    if (!propertiesDraft) return;
+                    const next = e.target.value.replace(/[^0-9:]/g, "");
+                    setPropertiesDraft({ ...propertiesDraft, launchTime: next });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="end-day">День окончания</Label>
+                <Input
+                  id="end-day"
+                  type="date"
+                  className="bg-white"
+                  value={propertiesDraft?.endDay ?? ""}
+                  onChange={(e) => propertiesDraft && setPropertiesDraft({ ...propertiesDraft, endDay: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="end-time">Время окончания</Label>
+                <Input
+                  id="end-time"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="HH:MM:SS"
+                  className="bg-white"
+                  value={propertiesDraft?.endTime ?? ""}
+                  onChange={(e) => {
+                    if (!propertiesDraft) return;
+                    const next = e.target.value.replace(/[^0-9:]/g, "");
+                    setPropertiesDraft({ ...propertiesDraft, endTime: next });
+                  }}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label>Файл</Label>
+                <Select
+                  value={propertiesDraft?.fileType ?? "SQL"}
+                  onValueChange={(value) => propertiesDraft && setPropertiesDraft({ ...propertiesDraft, fileType: value as TaskPropertiesDraft["fileType"] })}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SQL">SQL</SelectItem>
+                    <SelectItem value="PY">PY</SelectItem>
+                    <SelectItem value="BAT">BAT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="connection">Подключение</Label>
+                <Input
+                  id="connection"
+                  placeholder="-"
+                  value={propertiesDraft?.connection ?? ""}
+                  disabled
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Уведомления</Label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Select
+                  value={propertiesDraft?.notificationChannel ?? ""}
+                  onValueChange={(value) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({
+                      ...propertiesDraft,
+                      notificationChannel: value as NotificationChannel,
+                      notificationValue: value ? propertiesDraft.notificationValue : "",
+                    })
+                  }
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Выбрать" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="telegram">Telegram</SelectItem>
+                  </SelectContent>
+                </Select>
+                {propertiesDraft?.notificationChannel ? (
+                  <Input
+                    placeholder={propertiesDraft.notificationChannel === "email" ? "Email" : "@username"}
+                    value={propertiesDraft.notificationValue}
+                    onChange={(e) =>
+                      propertiesDraft &&
+                      setPropertiesDraft({ ...propertiesDraft, notificationValue: e.target.value })
+                    }
+                    className="bg-white"
+                  />
+                ) : (
+                  <Input placeholder="Не выбрано" disabled className="bg-white" />
+                )}
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3 text-sm font-medium text-muted-foreground">
+                <div>Поле</div>
+                <div>Значение</div>
+                <div>Описание</div>
+              </div>
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronHours ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronHours: sanitizeCronWithMax(e.target.value, 23) })
+                  }
+                  placeholder="Часы"
+                />
+                <div className="text-sm">Час</div>
+                <div className="text-sm text-muted-foreground">—</div>
+              </div>
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronMinutes ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMinutes: sanitizeCronWithMax(e.target.value, 59) })
+                  }
+                  placeholder="Минуты"
+                />
+                <div className="text-sm">Минута</div>
+                <div className="text-sm text-muted-foreground">—</div>
+              </div>
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronWeekdays ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: sanitizeCronWithMax(e.target.value, 7) })
+                  }
+                  placeholder="Дни недели"
+                />
+                <div className="text-sm">День недели</div>
+                <div className="text-sm text-muted-foreground">—</div>
+              </div>
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronMonthDays ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMonthDays: sanitizeCronWithMax(e.target.value, 31) })
+                  }
+                  placeholder="Дни месяца"
+                />
+                <div className="text-sm">День месяца</div>
+                <div className="text-sm text-muted-foreground">—</div>
+              </div>
+              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronMonths ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMonths: sanitizeCronWithMax(e.target.value, 12) })
+                  }
+                  placeholder="Месяцы"
+                />
+                <div className="text-sm">Месяц</div>
+                <div className="text-sm text-muted-foreground">—</div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPropertiesOpen(false)}>
+              Ок
+            </Button>
+            <Button onClick={handleSaveProperties} disabled={!propertiesDraft}>
+              Сохранить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Save confirmation dialog */}
       <AlertDialog open={saveConfirmId !== null} onOpenChange={(open) => !open && setSaveConfirmId(null)}>
