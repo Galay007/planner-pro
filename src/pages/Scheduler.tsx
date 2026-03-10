@@ -257,6 +257,106 @@ const Scheduler = () => {
   };
 
   const sanitizeCronWithMax = (value: string, max: number) => clampCronValue(sanitizeCron(value), max);
+  const normalizeStarUsage = (value: string) => {
+    if (!value.includes("*")) return value;
+    if (value === "*") return value;
+    if (value === "*/") return value;
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `*/${stepMatch[1]}`;
+    return "*";
+  };
+
+  const listValue = (value: string) => value.split(",").join(", ");
+
+  const minutesDescription = (value: string) => {
+    if (!value) return "";
+    if (value === "*") return "Каждую минуту";
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `Каждую минуту с шагом ${stepMatch[1]}`;
+    const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
+    if (startStepMatch) return `Начиная с ${startStepMatch[1]} минуты, каждую минуту с шагом ${startStepMatch[2]}`;
+    const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) return `С ${rangeStepMatch[1]} по ${rangeStepMatch[2]} минуту с шагом ${rangeStepMatch[3]}`;
+    const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return `С ${rangeMatch[1]} по ${rangeMatch[2]} минуту`;
+    if (value.includes(",")) {
+      return `На ${listValue(value)} минутах`;
+    }
+    if (/^\d+$/.test(value)) return `На ${value} минуте`;
+    return "";
+  };
+
+  const hoursDescription = (value: string) => {
+    if (!value) return "";
+    if (value === "*") return "Каждый час";
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `Каждый час с шагом ${stepMatch[1]}`;
+    const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
+    if (startStepMatch) return `Начиная с ${startStepMatch[1]} часов, каждый час с шагом ${startStepMatch[2]}`;
+    const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) return `С ${rangeStepMatch[1]} до ${rangeStepMatch[2]} часов с шагом ${rangeStepMatch[3]}`;
+    const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return `С ${rangeMatch[1]} до ${rangeMatch[2]} часов`;
+    if (value.includes(",")) {
+      return `В ${listValue(value)} часов`;
+    }
+    if (/^\d+$/.test(value)) return `В ${value} часов`;
+    return "";
+  };
+
+  const monthDaysDescription = (value: string) => {
+    if (!value) return "";
+    if (value === "*") return "Каждый день месяца";
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `Каждый день месяца с шагом ${stepMatch[1]}`;
+    const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
+    if (startStepMatch) return `Начиная с ${startStepMatch[1]} числа, каждый день месяца с шагом ${startStepMatch[2]}`;
+    const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) return `С ${rangeStepMatch[1]} по ${rangeStepMatch[2]} число с шагом ${rangeStepMatch[3]}`;
+    const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return `С ${rangeMatch[1]} по ${rangeMatch[2]} число`;
+    if (value.includes(",")) {
+      return `${listValue(value)} числа`;
+    }
+    if (/^\d+$/.test(value)) return `${value}-го числа`;
+    return "";
+  };
+
+  const monthsDescription = (value: string) => {
+    if (!value) return "";
+    if (value === "*") return "Каждый месяц";
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `Каждый месяц с шагом ${stepMatch[1]}`;
+    const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
+    if (startStepMatch) return `Начиная с ${startStepMatch[1]} месяца, каждый месяц с шагом ${startStepMatch[2]}`;
+    const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) return `С ${rangeStepMatch[1]} по ${rangeStepMatch[2]} месяц с шагом ${rangeStepMatch[3]}`;
+    const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return `С ${rangeMatch[1]} по ${rangeMatch[2]} месяц`;
+    if (value.includes(",")) {
+      return `В ${listValue(value)} месяце`;
+    }
+    if (/^\d+$/.test(value)) return `В ${value} месяце`;
+    return "";
+  };
+
+  const weekdaysDescription = (value: string) => {
+    if (!value) return "";
+    if (value === "*") return "Каждый день недели";
+    const stepMatch = value.match(/^\*\/(\d+)$/);
+    if (stepMatch) return `Каждый день недели с шагом ${stepMatch[1]}`;
+    const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
+    if (startStepMatch) return `Начиная с ${startStepMatch[1]} дня недели, каждый день недели с шагом ${startStepMatch[2]}`;
+    const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) return `С ${rangeStepMatch[1]} по ${rangeStepMatch[2]} день недели с шагом ${rangeStepMatch[3]}`;
+    const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) return `С ${rangeMatch[1]} по ${rangeMatch[2]} день недели`;
+    if (value.includes(",")) {
+      return `В ${listValue(value)} день недели`;
+    }
+    if (/^\d+$/.test(value)) return `В ${value} день недели`;
+    return "";
+  };
 
   return (
     <div className="flex flex-col h-full gap-3">
@@ -432,12 +532,14 @@ const Scheduler = () => {
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronHours: sanitizeCronWithMax(e.target.value, 23) })
+                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 23)) })
                   }
                   placeholder="Часы"
                 />
                 <div className="text-sm">Час</div>
-                <div className="text-sm text-muted-foreground">—</div>
+                <div className="text-sm text-muted-foreground">
+                  {hoursDescription(propertiesDraft?.cronHours ?? "")}
+                </div>
               </div>
               <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
                 <Input
@@ -445,12 +547,14 @@ const Scheduler = () => {
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronMinutes: sanitizeCronWithMax(e.target.value, 59) })
+                    setPropertiesDraft({ ...propertiesDraft, cronMinutes: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 59)) })
                   }
                   placeholder="Минуты"
                 />
                 <div className="text-sm">Минута</div>
-                <div className="text-sm text-muted-foreground">—</div>
+                <div className="text-sm text-muted-foreground">
+                  {minutesDescription(propertiesDraft?.cronMinutes ?? "")}
+                </div>
               </div>
               <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
                 <Input
@@ -458,12 +562,14 @@ const Scheduler = () => {
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: sanitizeCronWithMax(e.target.value, 7) })
+                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 7)) })
                   }
                   placeholder="Дни недели"
                 />
                 <div className="text-sm">День недели</div>
-                <div className="text-sm text-muted-foreground">—</div>
+                <div className="text-sm text-muted-foreground">
+                  {weekdaysDescription(propertiesDraft?.cronWeekdays ?? "")}
+                </div>
               </div>
               <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
                 <Input
@@ -471,12 +577,14 @@ const Scheduler = () => {
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronMonthDays: sanitizeCronWithMax(e.target.value, 31) })
+                    setPropertiesDraft({ ...propertiesDraft, cronMonthDays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 31)) })
                   }
                   placeholder="Дни месяца"
                 />
                 <div className="text-sm">День месяца</div>
-                <div className="text-sm text-muted-foreground">—</div>
+                <div className="text-sm text-muted-foreground">
+                  {monthDaysDescription(propertiesDraft?.cronMonthDays ?? "")}
+                </div>
               </div>
               <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
                 <Input
@@ -484,12 +592,14 @@ const Scheduler = () => {
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronMonths: sanitizeCronWithMax(e.target.value, 12) })
+                    setPropertiesDraft({ ...propertiesDraft, cronMonths: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 12)) })
                   }
                   placeholder="Месяцы"
                 />
                 <div className="text-sm">Месяц</div>
-                <div className="text-sm text-muted-foreground">—</div>
+                <div className="text-sm text-muted-foreground">
+                  {monthsDescription(propertiesDraft?.cronMonths ?? "")}
+                </div>
               </div>
             </div>
           </div>
