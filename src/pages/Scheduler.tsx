@@ -233,7 +233,20 @@ const Scheduler = () => {
     setPropertiesOpen(false);
   }, [propertiesDraft, selectedId, updateTask]);
 
-  const sanitizeCron = (value: string) => value.replace(/[^0-9,*/-]/g, "");
+  const enforceSingleSlash = (value: string) => {
+    let out = "";
+    let seen = false;
+    for (const ch of value) {
+      if (ch === "/") {
+        if (seen) continue;
+        seen = true;
+      }
+      out += ch;
+    }
+    return out;
+  };
+  const sanitizeCron = (value: string) => enforceSingleSlash(value.replace(/[^0-9,*/-]/g, ""));
+  const normalizeEmptyToStar = (value: string) => (value.trim() === "" ? "*" : value);
 
   const clampCronValue = (value: string, max: number) => {
     let out = "";
@@ -536,7 +549,10 @@ const Scheduler = () => {
                     propertiesDraft &&
                     setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 23)) })
                   }
-                  placeholder="Часы"
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeEmptyToStar(e.target.value) })
+                  }
                 />
                 <div className="text-sm">Час</div>
                 <div className="text-sm text-muted-foreground">
@@ -551,7 +567,10 @@ const Scheduler = () => {
                     propertiesDraft &&
                     setPropertiesDraft({ ...propertiesDraft, cronMinutes: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 59)) })
                   }
-                  placeholder="Минуты"
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMinutes: normalizeEmptyToStar(e.target.value) })
+                  }
                 />
                 <div className="text-sm">Минута</div>
                 <div className="text-sm text-muted-foreground">
@@ -566,7 +585,10 @@ const Scheduler = () => {
                     propertiesDraft &&
                     setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 7)) })
                   }
-                  placeholder="Дни недели"
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeEmptyToStar(e.target.value) })
+                  }
                 />
                 <div className="text-sm">День недели</div>
                 <div className="text-sm text-muted-foreground">
@@ -581,7 +603,10 @@ const Scheduler = () => {
                     propertiesDraft &&
                     setPropertiesDraft({ ...propertiesDraft, cronMonthDays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 31)) })
                   }
-                  placeholder="Дни месяца"
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMonthDays: normalizeEmptyToStar(e.target.value) })
+                  }
                 />
                 <div className="text-sm">День месяца</div>
                 <div className="text-sm text-muted-foreground">
@@ -596,7 +621,10 @@ const Scheduler = () => {
                     propertiesDraft &&
                     setPropertiesDraft({ ...propertiesDraft, cronMonths: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 12)) })
                   }
-                  placeholder="Месяцы"
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronMonths: normalizeEmptyToStar(e.target.value) })
+                  }
                 />
                 <div className="text-sm">Месяц</div>
                 <div className="text-sm text-muted-foreground">
