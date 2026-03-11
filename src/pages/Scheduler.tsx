@@ -284,15 +284,27 @@ const Scheduler = () => {
   const listValue = (value: string) => value.split(",").join(", ");
 
   const minutesDescription = (value: string) => {
-    if (!value) return "";
+    if (!value) return "Введите число от 1 до 59, '/' шаг, '-' диапазон, ',' перечисление";
     if (value === "*") return "Каждую минуту";
     const stepMatch = value.match(/^\*\/(\d+)$/);
     if (stepMatch) return `Каждую минуту с шагом ${stepMatch[1]}`;
     const startStepMatch = value.match(/^(\d+)\/(\d+)$/);
     if (startStepMatch) return `Начиная с ${startStepMatch[1]} минуты, каждую минуту с шагом ${startStepMatch[2]}`;
     const rangeStepMatch = value.match(/^(\d+)-(\d+)\/(\d+)$/);
+    if (rangeStepMatch) {
+    const start = parseInt(rangeStepMatch[1], 10);
+    const end = parseInt(rangeStepMatch[2], 10);
+    if (end <= start) {
+      return "Ошибка: второе число должно быть больше первого";
+    }}
     if (rangeStepMatch) return `С ${rangeStepMatch[1]} по ${rangeStepMatch[2]} минуту с шагом ${rangeStepMatch[3]}`;
     const rangeMatch = value.match(/^(\d+)-(\d+)$/);
+    if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const end = parseInt(rangeMatch[2], 10);
+    if (end <= start) {
+      return "Ошибка: второе число должно быть больше первого";
+    }}
     if (rangeMatch) return `С ${rangeMatch[1]} по ${rangeMatch[2]} минуту`;
     if (value.includes(",")) {
       return `На ${listValue(value)} минутах`;
@@ -302,7 +314,7 @@ const Scheduler = () => {
   };
 
   const hoursDescription = (value: string) => {
-    if (!value) return "";
+    if (!value) return "Введите число от 1 до 23, '/' шаг, '-' диапазон, ',' перечисление";
     if (value === "*") return "Каждый час";
     const stepMatch = value.match(/^\*\/(\d+)$/);
     if (stepMatch) return `Каждый час с шагом ${stepMatch[1]}`;
@@ -320,7 +332,7 @@ const Scheduler = () => {
   };
 
   const monthDaysDescription = (value: string) => {
-    if (!value) return "";
+    if (!value) return "Введите число от 1 до 31, '/' шаг, '-' диапазон, ',' перечисление";
     if (value === "*") return "Каждый день месяца";
     const stepMatch = value.match(/^\*\/(\d+)$/);
     if (stepMatch) return `Каждый день месяца с шагом ${stepMatch[1]}`;
@@ -338,7 +350,7 @@ const Scheduler = () => {
   };
 
   const monthsDescription = (value: string) => {
-    if (!value) return "";
+    if (!value) return "Введите число от 1 до 12, '/' шаг, '-' диапазон, ',' перечисление";
     if (value === "*") return "Каждый месяц";
     const stepMatch = value.match(/^\*\/(\d+)$/);
     if (stepMatch) return `Каждый месяц с шагом ${stepMatch[1]}`;
@@ -356,7 +368,7 @@ const Scheduler = () => {
   };
 
   const weekdaysDescription = (value: string) => {
-    if (!value) return "";
+    if (!value) return "Введите число от 1 до 7, '/' шаг, '-' диапазон, ',' перечисление";
     if (value === "*") return "Каждый день недели";
     const stepMatch = value.match(/^\*\/(\d+)$/);
     if (stepMatch) return `Каждый день недели с шагом ${stepMatch[1]}`;
@@ -403,12 +415,12 @@ const Scheduler = () => {
 
       <Dialog open={propertiesOpen} onOpenChange={setPropertiesOpen}>
         <DialogContent
-          className="max-w-3xl"
+          className="max-w-2xl"
           onEscapeKeyDown={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
         >
-          <DialogHeader className="flex-row items-center justify-between space-y-0">
+          <DialogHeader className="flex-row items-center justify-between space-y-0 mb-3">
             <DialogTitle>
               {selectedId !== null ? `Свойства задачи ID ${selectedId}` : "Свойства задачи"}
             </DialogTitle>
@@ -536,30 +548,13 @@ const Scheduler = () => {
               </div>
             </div>
             <div className="grid gap-2">
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3 text-sm font-medium text-muted-foreground">
-                <div>Поле</div>
-                <div>Значение</div>
+              <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3 text-sm font-medium text-muted-foreground text-center">
+                <div>Поле ввода</div>
+                <div>Параметр</div>
                 <div>Описание</div>
               </div>
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
-                <Input
-                  value={propertiesDraft?.cronHours ?? ""}
-                  className="bg-white"
-                  onChange={(e) =>
-                    propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 23)) })
-                  }
-                  onBlur={(e) =>
-                    propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeEmptyToStar(e.target.value) })
-                  }
-                />
-                <div className="text-sm">Час</div>
-                <div className="text-sm text-muted-foreground">
-                  {hoursDescription(propertiesDraft?.cronHours ?? "")}
-                </div>
-              </div>
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+             
+              <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3">
                 <Input
                   value={propertiesDraft?.cronMinutes ?? ""}
                   className="bg-white"
@@ -577,25 +572,25 @@ const Scheduler = () => {
                   {minutesDescription(propertiesDraft?.cronMinutes ?? "")}
                 </div>
               </div>
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+               <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3">
                 <Input
-                  value={propertiesDraft?.cronWeekdays ?? ""}
+                  value={propertiesDraft?.cronHours ?? ""}
                   className="bg-white"
                   onChange={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 7)) })
+                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 23)) })
                   }
                   onBlur={(e) =>
                     propertiesDraft &&
-                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeEmptyToStar(e.target.value) })
+                    setPropertiesDraft({ ...propertiesDraft, cronHours: normalizeEmptyToStar(e.target.value) })
                   }
                 />
-                <div className="text-sm">День недели</div>
+                <div className="text-sm">Час</div>
                 <div className="text-sm text-muted-foreground">
-                  {weekdaysDescription(propertiesDraft?.cronWeekdays ?? "")}
+                  {hoursDescription(propertiesDraft?.cronHours ?? "")}
                 </div>
               </div>
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+              <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3">
                 <Input
                   value={propertiesDraft?.cronMonthDays ?? ""}
                   className="bg-white"
@@ -612,8 +607,8 @@ const Scheduler = () => {
                 <div className="text-sm text-muted-foreground">
                   {monthDaysDescription(propertiesDraft?.cronMonthDays ?? "")}
                 </div>
-              </div>
-              <div className="grid grid-cols-[minmax(160px,1fr)_minmax(200px,1fr)_minmax(220px,1fr)] items-center gap-3">
+              </div>              
+              <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3">
                 <Input
                   value={propertiesDraft?.cronMonths ?? ""}
                   className="bg-white"
@@ -631,6 +626,24 @@ const Scheduler = () => {
                   {monthsDescription(propertiesDraft?.cronMonths ?? "")}
                 </div>
               </div>
+              <div className="grid grid-cols-[minmax(160px,1.3fr)_minmax(100px,1fr)_minmax(220px,2fr)] items-center gap-3">
+                <Input
+                  value={propertiesDraft?.cronWeekdays ?? ""}
+                  className="bg-white"
+                  onChange={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeStarUsage(sanitizeCronWithMax(e.target.value, 7)) })
+                  }
+                  onBlur={(e) =>
+                    propertiesDraft &&
+                    setPropertiesDraft({ ...propertiesDraft, cronWeekdays: normalizeEmptyToStar(e.target.value) })
+                  }
+                />
+                <div className="text-sm">День недели</div>
+                <div className="text-sm text-muted-foreground">
+                  {weekdaysDescription(propertiesDraft?.cronWeekdays ?? "")}
+                </div>
+              </div>
             </div>
           </div>
           <div className="rounded-md border border-border bg-background p-3 text-sm">
@@ -643,7 +656,7 @@ const Scheduler = () => {
                 cronText = cronstrue.toString(cronExpression, { 
                                               locale: "ru",
                                               verbose: true,
-                                              dayOfWeekStartIndexZero: false,
+                                              dayOfWeekStartIndexZero: true,
                                               monthStartIndexZero: false,
                                               use24HourTimeFormat: true
                                             });
@@ -651,13 +664,13 @@ const Scheduler = () => {
                 cronText = "Невозможно разобрать cron-выражение";
               }
               return (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground">Cron expression</span>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="sm:col-span-1 flex flex-col gap-1">
+                    <span className="text-muted-foreground">Cron выражение</span>
                     <span className="font-mono">{cronExpression}</span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-muted-foreground">Описание</span>
+                  <div className="sm:col-span-2 flex flex-col gap-1 ml-10">
+                    <span className="text-muted-foreground">Описание сценария</span>
                     <span>{cronText}</span>
                   </div>
                 </div>
@@ -666,7 +679,7 @@ const Scheduler = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPropertiesOpen(false)}>
-              Ок
+              Отмена
             </Button>
             <Button onClick={handleSaveProperties} disabled={!propertiesDraft}>
               Сохранить
