@@ -4,6 +4,8 @@ import { SchedulerToolbar } from "@/components/scheduler/SchedulerToolbar";
 import { SchedulerTable } from "@/components/scheduler/SchedulerTable";
 import { SchedulerFilters } from "@/components/scheduler/SchedulerFilters";
 import { Button } from "@/components/ui/button";
+import cronstrue from "cronstrue";
+import "cronstrue/locales/ru";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -602,6 +604,37 @@ const Scheduler = () => {
                 </div>
               </div>
             </div>
+          </div>
+          <div className="rounded-md border border-border bg-background p-3 text-sm">
+            {(() => {
+              const safe = (v: string | undefined) => (v && v.trim() ? v.trim() : "*");
+              const cronExpression = `${safe(propertiesDraft?.cronMinutes)} ${safe(propertiesDraft?.cronHours)} ${safe(propertiesDraft?.cronMonthDays)} ${safe(propertiesDraft?.cronMonths)} ${safe(propertiesDraft?.cronWeekdays)}`;
+              let cronText = "";
+              try {
+                const rawLocale = typeof navigator !== "undefined" && navigator.language ? navigator.language : "ru";
+                cronText = cronstrue.toString(cronExpression, { 
+                                              locale: "ru",
+                                              verbose: true,
+                                              dayOfWeekStartIndexZero: false,
+                                              monthStartIndexZero: false,
+                                              use24HourTimeFormat: true
+                                            });
+              } catch {
+                cronText = "Невозможно разобрать cron-выражение";
+              }
+              return (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-muted-foreground">Cron expression</span>
+                    <span className="font-mono">{cronExpression}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-muted-foreground">Описание</span>
+                    <span>{cronText}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPropertiesOpen(false)}>
