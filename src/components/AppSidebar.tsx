@@ -30,7 +30,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="px-4 pb-4 mb-2 border-b border-border">
             <h1 className="text-sm font-bold tracking-wider text-primary uppercase">
-              ⬡ Script Scheduler
+              ОРКЕСТРАТОР ЗАДАЧ
             </h1>
           </div>
         )}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { Task } from "@/types/task";
 import { SchedulerToolbar } from "@/components/scheduler/SchedulerToolbar";
 import { SchedulerTable } from "@/components/scheduler/SchedulerTable";
@@ -55,6 +55,7 @@ type TaskPropertiesDraft = {
 };
 
 const Scheduler = () => {
+  const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [nextId, setNextId] = useState(1);
@@ -101,6 +102,30 @@ const Scheduler = () => {
   }, [tasks, search, columnFilters]);
 
   const hasActiveFilters = search.length > 0 || Object.keys(columnFilters).length > 0;
+  
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch(`${apiBaseUrl}/tasks`);
+        if (!response.ok) {
+          throw new Error(`Не удалось загрузить задачи. Статус: ${response.status}`);
+        }
+
+        const fetchedTasks = (await response.json()) as Array<Omit<Task, "properties" | "modified">>;
+        const sortedTasks = fetchedTasks
+          .map((task) => ({ ...task, properties: "unset" as const, modified: false }))
+          .sort((a, b) => a.id - b.id);
+
+        setTasks(sortedTasks);
+        const maxId = sortedTasks.length > 0 ? sortedTasks[sortedTasks.length - 1].id : 0;
+        setNextId(maxId + 1);
+        setSelectedId(null);
+        taskSnapshotsRef.current.clear();
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [apiBaseUrl]);
 
   const resetAllFilters = useCallback(() => {
     setSearch("");
@@ -149,9 +174,29 @@ const Scheduler = () => {
 
   const removeTask = useCallback(() => {
     if (selectedId === null) return;
-    setTasks((prev) => prev.filter((t) => t.id !== selectedId));
-    setSelectedId(null);
-  }, [selectedId]);
+    void (async () => {
+      try {
+        const deleteResponse = await fetch(`${apiBaseUrl}/tasks/${selectedId}`, {
+          method: "DELETE",
+        });
+
+        if (!deleteResponse.ok && deleteResponse.status !== 404) {
+          throw new Error(`Не удалось удалить задачу ${selectedId}. Статус: ${deleteResponse.status}`);
+        }
+
+        setTasks((prev) => prev.filter((t) => t.id !== selectedId));
+        setPropertiesById((prev) => {
+          const next = { ...prev };
+          delete next[selectedId];
+          return next;
+        });
+        taskSnapshotsRef.current.delete(selectedId);
+        setSelectedId(null);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [apiBaseUrl, selectedId]);
 
   const updateTask = useCallback((id: number, updates: Partial<Task>) => {
     setTasks((prev) =>
@@ -171,12 +216,64 @@ const Scheduler = () => {
     );
   }, []);
 
-  const saveTask = useCallback((id: number) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, modified: false } : t))
-    );
-    taskSnapshotsRef.current.delete(id);
-  }, []);
+  // const saveTask = useCallback((id: number) => {
+  //   setTasks((prev) =>
+  //     prev.map((t) => (t.id === id ? { ...t, modified: false } : t))
+  //   );
+  //   taskSnapshotsRef.current.delete(id);
+  // }, []);
+   const saveTask = useCallback(async (id: number) => {
+    const taskToSave = tasks.find((task) => task.id === id);
+    if (!taskToSave) return;
+
+    const taskPayload = {
+      id: taskToSave.id,
+      name: taskToSave.name,
+      group: taskToSave.group,
+      employee: taskToSave.employee,
+      control: taskToSave.control,
+      dependency: taskToSave.dependency,
+      status: taskToSave.status,
+      notifications: taskToSave.notifications,
+      logs: taskToSave.logs,
+      comment: taskToSave.comment,
+    };
+
+    try {
+      const putResponse = await fetch(`${apiBaseUrl}/tasks/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(taskPayload),
+      });
+
+      if (!putResponse.ok && putResponse.status !== 404) {
+        throw new Error(`Не удалось обновить задачу ${id}. Статус: ${putResponse.status}`);
+      }
+
+      if (putResponse.status === 404) {
+        const postResponse = await fetch(`${apiBaseUrl}/tasks/${id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(taskPayload),
+        });
+
+        if (!postResponse.ok) {
+          throw new Error(`Не удалось создать задачу ${id}. Статус: ${postResponse.status}`);
+        }
+      }
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, modified: false } : t))
+      );
+      taskSnapshotsRef.current.delete(id);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [apiBaseUrl, tasks]);
 
   const discardTask = useCallback((id: number) => {
     const snapshot = taskSnapshotsRef.current.get(id);
@@ -202,7 +299,7 @@ const Scheduler = () => {
 
   const handleSaveClick = useCallback(() => {
     if (selectedId !== null && selectedModified) {
-      saveTask(selectedId);
+      void saveTask(selectedId);
     }
   }, [selectedId, selectedModified, saveTask]);
 
@@ -702,7 +799,7 @@ const Scheduler = () => {
             <AlertDialogAction
               onClick={() => {
                 if (saveConfirmId !== null) {
-                  saveTask(saveConfirmId);
+                  void saveTask(saveConfirmId);
                 }
                 setSaveConfirmId(null);
               }}
@@ -742,7 +839,7 @@ const Scheduler = () => {
             <AlertDialogAction
               onClick={() => {
                 if (unsavedPromptId !== null) {
-                  saveTask(unsavedPromptId);
+                  void saveTask(unsavedPromptId);
                 }
                 setSelectedId(pendingSelectId);
                 setUnsavedPromptId(null);
