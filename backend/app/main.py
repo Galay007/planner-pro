@@ -4,19 +4,28 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-
-from .config import settings
-from .db import get_connection, run_migrations
-from .schemas import Task, TaskCreate, TaskPropertiesBase, TaskPropertiesRecord, TaskReplace
-
+from .routers.ConnectionRouter import ConnectionRouter
+from .configs.Config import settings
+from .configs.Database import get_connection, run_migrations, init_metadata_db
+from .schemas55 import Task, TaskCreate, TaskPropertiesBase, TaskPropertiesRecord, TaskReplace
+import sys
+sys.dont_write_bytecode = True
+# from sqlalchemy.ext.asyncio import AsyncSession, create_engine  # для ассинхронных запросов
+# from sqlalchemy.ext.declarative import declarative_base
+# from sqlalchemy.orm import sessionmaker
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     run_migrations()
     yield
 
-
+init_metadata_db()
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+
+app.include_router(ConnectionRouter)
+# app.include_router(items.router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

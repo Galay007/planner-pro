@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 
 from sqlalchemy import create_engine
-
-from .config import settings
+from sqlalchemy.orm import sessionmaker
+from .Config import settings
+from ..models.ConnectionModel import Base
 
 
 engine = create_engine(settings.database_url, future=True, pool_pre_ping=True)
@@ -43,7 +44,6 @@ CREATE TABLE IF NOT EXISTS task_properties (
 );
 
 
-CREATE INDEX IF NOT EXISTS idx_task_properties_task_id ON task_properties(task_id);
 """
 
 
@@ -51,3 +51,24 @@ def run_migrations() -> None:
     with get_connection() as connection:
         for statement in [s.strip() for s in MIGRATION_SQL.split(";") if s.strip()]:
             connection.exec_driver_sql(statement)
+
+def init_metadata_db():
+    Base.metadata.create_all(bind=engine)
+
+
+#     /*CREATE TABLE connections (
+#     id SERIAL PRIMARY KEY,
+#     name VARCHAR(100) NOT NULL,
+#     conn_type VARCHAR(50) NOT NULL,
+#     host VARCHAR(255) NOT NULL,
+#     port INT4,
+#     db_name VARCHAR(255),
+#     login VARCHAR(100),
+#     password VARCHAR(255),
+#     dp_path TEXT NULL,
+#     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+#     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+# );*/
+
+
+# --CREATE INDEX IF NOT EXISTS idx_task_properties_task_id ON task_properties(task_id);
