@@ -16,16 +16,19 @@ cd backend
 docker compose up -d
 ```
 
-## Run API
+## Run APIca
 
 ```shell
 cd backend
 python -m venv .venv
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1 #windowds 
 pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cp .env .env
+$env:PYTHONDONTWRITEBYTECODE=1; #powershell чтобы не создавались __pychache__
+set PYTHONDONTWRITEBYTECODE=1 #cmd чтобы не создавались __pychache__
+
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 
 ```
 
 ## Auto migration on startup
