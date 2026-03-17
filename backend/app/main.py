@@ -5,11 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from .routers.ConnectionRouter import ConnectionRouter
+from .routers.TaskRouter import TaskRouter
 from .configs.Config import settings
 from .configs.Database import get_connection, run_migrations, init_metadata_db
 from .schemas55 import Task, TaskCreate, TaskPropertiesBase, TaskPropertiesRecord, TaskReplace
-import sys
-sys.dont_write_bytecode = True
+
 # from sqlalchemy.ext.asyncio import AsyncSession, create_engine  # для ассинхронных запросов
 # from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import sessionmaker
@@ -24,6 +24,7 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 
 app.include_router(ConnectionRouter)
+app.include_router(TaskRouter)
 # app.include_router(items.router)
 
 app.add_middleware(
@@ -55,19 +56,7 @@ def _to_task_properties_record(row: dict) -> TaskPropertiesRecord:
     )
 
 
-def _task_from_row(row: dict) -> Task:
-    return Task(
-        id=int(row["id"]),
-        name=row["name"],
-        group=row["task_group"],
-        employee=row["employee"],
-        control=row["control"],
-        dependency=row["dependency"],
-        status=row["status"],
-        notifications=row["notifications"],
-        logs=row["logs"],
-        comment=row["comment"],
-    )
+
 
 
 @app.get("/health")
@@ -75,108 +64,10 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/tasks", response_model=list[Task])
-def list_tasks() -> list[Task]:
-    with get_connection() as connection:
-        rows = connection.execute(text("SELECT * FROM tasks ORDER BY id ASC")).mappings().all()
-    return [_task_from_row(row) for row in rows]
 
 
-@app.get("/tasks/{task_id}", response_model=Task)
-def get_task(task_id: int) -> Task:
-    with get_connection() as connection:
-        row = connection.execute(
-            text("SELECT * FROM tasks WHERE id = :id"), {"id": task_id}
-        ).mappings().first()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return _task_from_row(row)
 
 
-@app.post("/tasks/{task_id}", response_model=Task, status_code=201)
-def create_task(task_id: int, payload: TaskCreate) -> Task:
-    if payload.id != task_id:
-        raise HTTPException(status_code=400, detail="Path task_id must match payload id")
-
-    try:
-        with get_connection() as connection:
-            row = connection.execute(
-                text(
-                    """
-                    INSERT INTO tasks (id, name, task_group, employee, control, dependency, status, notifications, logs, comment)
-                    VALUES (:id, :name, :task_group, :employee, :control, :dependency, :status, :notifications, :logs, :comment)
-                    RETURNING *
-                    """
-                ),
-                {
-                    "id": payload.id,
-                    "name": payload.name,
-                    "task_group": payload.group,
-                    "employee": payload.employee,
-                    "control": payload.control,
-                    "dependency": payload.dependency,
-                    "status": payload.status,
-                    "notifications": payload.notifications,
-                    "logs": payload.logs,
-                    "comment": payload.comment,
-                },
-            ).mappings().one()
-    except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail="Task with this id already exists or dependency is invalid") from exc
-
-    return _task_from_row(row)
-
-
-@app.put("/tasks/{task_id}", response_model=Task)
-def replace_task(task_id: int, payload: TaskReplace) -> Task:
-    with get_connection() as connection:
-        row = connection.execute(
-            text(
-                """
-                UPDATE tasks
-                SET name = :name,
-                    task_group = :task_group,
-                    employee = :employee,
-                    control = :control,
-                    dependency = :dependency,
-                    status = :status,
-                    notifications = :notifications,
-                    logs = :logs,
-                    comment = :comment
-                WHERE id = :id
-                RETURNING *
-                """
-            ),
-            {
-                "id": task_id,
-                "name": payload.name,
-                "task_group": payload.group,
-                "employee": payload.employee,
-                "control": payload.control,
-                "dependency": payload.dependency,
-                "status": payload.status,
-                "notifications": payload.notifications,
-                "logs": payload.logs,
-                "comment": payload.comment,
-            },
-        ).mappings().first()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return _task_from_row(row)
-
-
-@app.delete("/tasks/{task_id}", status_code=204)
-def delete_task(task_id: int) -> None:
-    with get_connection() as connection:
-        deleted = connection.execute(
-            text("DELETE FROM tasks WHERE id = :id"), {"id": task_id}
-        )
-    if deleted.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
 
 
 @app.get("/properties/{task_id}", response_model=TaskPropertiesRecord)

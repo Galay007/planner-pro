@@ -1,12 +1,11 @@
 from typing import Optional
 from sqlalchemy import (
-    Column, Integer, String, Text, create_engine
+    Column, Integer, String, Text
 )
-from sqlalchemy.orm import declarative_base, sessionmaker
 from cryptography.fernet import Fernet
 from ..configs.Config import settings
+from ..configs.Database import Base
 
-Base = declarative_base()
 
 FERNET_KEY = settings.fernet_key
 fernet = Fernet(FERNET_KEY.encode() if isinstance(FERNET_KEY, str) else FERNET_KEY)
@@ -22,32 +21,26 @@ class Connection(Base):
     port = Column(Integer, nullable=True)
     db_name = Column(String(255), nullable=True)                      
     login = Column(String(255), nullable=True)
-    password_encrypted = Column(Text, nullable=True)    
+    pass_str = Column(Text, nullable=True)    
     db_path = Column(Text,nullable=True)             
 
 
     @property
     def password(self) -> str | None:
-        """Вернёт расшифрованный пароль (или None)."""
-        if not self.password_encrypted:
+        if not self.pass_str:
             return None
-        # храним как base64-строку, шифруем/расшифровываем байты
-        return fernet.decrypt(self.password_encrypted.encode()).decode()
+        return fernet.decrypt(self.pass_str.encode("utf-8")).decode("utf-8")
 
     @password.setter
     def password(self, value: str | None) -> None:
-        """При присвоении шифруем и кладём в password_encrypted."""
         if value is None or value == "":
-            self.password_encrypted = None
+            self.pass_str = None
         else:
-            token = fernet.encrypt(value.encode())
-            self.password_encrypted = token.decode()
+            token = fernet.encrypt(value.encode("utf-8"))
+            self.pass_str = token.decode("utf-8")
 
     def build_sqlalchemy_url(self) -> str:
-        """
-        Собрать DSN, например:
-        postgresql+psycopg2://user:pass@host:5432/dbname
-        """
+
         login = self.login or ""
         password = self.password or ""
         auth = ""
@@ -58,22 +51,21 @@ class Connection(Base):
                 auth = f"{login}@"
 
         port_part = f":{self.port}" if self.port else ""
-        schema_part = f"/{self.schema}" if self.schema else ""
+        schema_part = f"/{self.db_name}" if self.db_name else ""
         return f"{self.conn_type}://{auth}{self.host}{port_part}{schema_part}"
     
     def normalize(self):
+        if self.password:
+            has_password = "true"
         return {
             "id": self.id.__str__(),
             "name": self.name.__str__(),
+            "conn_type": self.conn_type.__str__(),                 
+            "host": self.host.__str__(),      
+            "port": self.port.__str__(),      
+            "db_name": self.db_name.__str__(),                           
+            "login": self.login.__str__(),      
+            "has_password": has_password.__str__(),        
+            "db_path": self.db_path.__str__(),       
         }
 
-    def encrypt_secret(value: Optional[str]) -> Optional[str]:
-        if not value:
-            return None
-        token = fernet.encrypt(value.encode("utf-8"))
-        return token.decode("utf-8")
-
-    def decrypt_secret(token: Optional[str]) -> Optional[str]:
-        if not token:
-            return None
-        return fernet.decrypt(token.encode("utf-8")).decode("utf-8")

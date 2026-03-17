@@ -19,7 +19,7 @@ class ConnectionOut(BaseModel):
     conn_type: str
     host: str
     port: Optional[int]
-    schema_name: Optional[str]
+    db_name: Optional[str]
     login: Optional[str]
     has_password: Optional[str]
     db_path: Optional[str]

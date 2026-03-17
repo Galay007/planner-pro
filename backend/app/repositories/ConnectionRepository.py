@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload
 
-from ..configs.Database import get_connection
+from ..configs.Database import get_orm_connection
 from ..models.ConnectionModel import Connection
 
 
@@ -11,7 +11,7 @@ class ConnectionRepository:
     db: Session
 
     def __init__(
-        self, db: Session = Depends(get_connection)
+        self, db: Session = Depends(get_orm_connection)
     ) -> None:
         self.db = db
 
@@ -28,13 +28,8 @@ class ConnectionRepository:
 
         return query.offset(start).limit(limit).all()
 
-    def get(self, name: str) -> Connection:
-        
+    def get(self, name: str) -> Connection:      
         return self.db.query(Connection).filter(Connection.name == name).first()
-        # return self.db.get(
-        #     Connection,
-        #     connection.name,
-        # )
 
     def create(self, connection: Connection) -> Connection:
         self.db.add(connection)

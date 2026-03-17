@@ -36,6 +36,5 @@ class ConnectionService:
 
 
     def get_connection_by_name(self,name: str) -> Connection | None:
-        self.connectionRepository.get
-            
+                 
         return self.connectionRepository.get(name)
