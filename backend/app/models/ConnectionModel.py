@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import (
-    Column, Integer, String, Text
+    Column, Integer, String, Text,DateTime, text, func
 )
 from cryptography.fernet import Fernet
 from ..configs.Config import settings
@@ -22,7 +22,8 @@ class Connection(Base):
     db_name = Column(String(255), nullable=True)                      
     login = Column(String(255), nullable=True)
     pass_str = Column(Text, nullable=True)    
-    db_path = Column(Text,nullable=True)             
+    db_path = Column(Text,nullable=True)    
+    created_at = Column(DateTime(timezone=False),server_default=func.now())   
 
 
     @property
@@ -66,6 +67,7 @@ class Connection(Base):
             "db_name": self.db_name.__str__(),                           
             "login": self.login.__str__(),      
             "has_password": has_password.__str__(),        
-            "db_path": self.db_path.__str__(),       
+            "db_path": self.db_path.__str__(),
+            "created_at": self.created_at.__str__()   
         }
 

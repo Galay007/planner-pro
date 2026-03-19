@@ -10,7 +10,8 @@ class ConnectionCreate(BaseModel):
     db_name: Optional[str] = None
     login: Optional[str] = None
     password: Optional[str] = None      
-    db_path: Optional[str] = None       
+    db_path: Optional[str] = None
+   
 
 
 class ConnectionOut(BaseModel):
@@ -23,3 +24,5 @@ class ConnectionOut(BaseModel):
     login: Optional[str]
     has_password: Optional[str]
     db_path: Optional[str]
+    created_at: Optional[str]
+

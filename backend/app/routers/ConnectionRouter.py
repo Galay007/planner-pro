@@ -1,7 +1,10 @@
 from fastapi import HTTPException, APIRouter, Depends, status
 from ..schemas.ConnectionSchema import ConnectionCreate, ConnectionOut
 from ..services.ConnectionService import ConnectionService
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+import logging
 
+logger = logging.getLogger(__name__)
 
 ConnectionRouter = APIRouter(
     prefix="/connections"
@@ -21,20 +24,43 @@ def create_connection_handler(payload: ConnectionCreate, connectionService: Conn
             password=payload.password,
             db_path=payload.db_path
         )
-    except ValueError as e:
 
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    # except IntegrityError as e:
+    #     logger.error(f"Integrity error for connection '{payload.name}': {e}")
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT, 
+    #         detail=f"Connection with name '{payload.name}' already exists"
+    #     )
 
-    if not new_connection:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Connection was not created")
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+            detail="Database service unavailable"
+        )
 
     return new_connection.normalize()
 
 
 @ConnectionRouter.get("/{name}")
 def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
-    return connectionService.get_connection_by_name(name).build_sqlalchemy_url()
+    connection = connectionService.get_connection_by_name(name)
+    
+    if connection is None:
+        logger.warning(f"Connection '{name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Connection '{name}' not found")
+    
+    return connection.build_sqlalchemy_url()
 
+@ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete(name: str, connectionService: ConnectionService = Depends()
+):
+    connection = connectionService.get_connection_by_name(name)
+    if connection is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Connection '{name}' not found")
+    
+    return connectionService.delete(connection)
 
 # POST /connections
 # Content-Type: application/json

@@ -62,19 +62,28 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
 @TaskRouter.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(task_id: int, taskService: TaskService = Depends()
 ):
-    return taskService.delete(task_id)
+    task = taskService.get_task_by_id(task_id)
 
-@TaskRouter.get("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task '{task_id}' not found")
+    
+    return taskService.delete(task)
+
+@TaskRouter.get("/{task_id}")
 def get_task_by_id(task_id: int, taskService: TaskService = Depends()
 ):
-    return taskService.get_task_by_id(task_id)
+    task = taskService.get_task_by_id(task_id)
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task '{task_id}' not found")
+    
+    return task
 
-@TaskRouter.get("/", status_code=status.HTTP_204_NO_CONTENT)
+@TaskRouter.get("/")
 def get_tasks(task_id: int, taskService: TaskService = Depends()
 ):
     return taskService.get_tasks()
 
-@TaskRouter.put("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@TaskRouter.put("/{task_id}")
 def update_task(task_id: int, data: dict, taskService: TaskService = Depends()
 ):
     task = get_task_by_id(task_id)

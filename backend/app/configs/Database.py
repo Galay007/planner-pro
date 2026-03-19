@@ -3,28 +3,51 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 from .Config import settings
+from sqlalchemy import text
+import time
 
 
 Base = declarative_base()
-engine = create_engine(settings.database_url, future=True, pool_pre_ping=True)
+
+engine = create_engine(
+    settings.database_url,
+    future=True,
+    pool_recycle=300,          
+    pool_timeout=10,           
+    pool_size=10,              
+    max_overflow=10,           
+    echo=False,   
+    pool_pre_ping=True         
+)
 
 SessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine
+    autocommit=False, 
+    autoflush=False, 
+    bind=engine
 )
 
 
 @contextmanager
 def get_connection():
     with engine.begin() as connection:
+        print(f" Gave connection")
         yield connection
 
 
 def get_orm_connection():
-    db = scoped_session(SessionLocal)
+    db = SessionLocal()
     try:
+        print(f"🚨 Gave pool")
         yield db
+        db.commit()
+    except Exception as e:
+        print(f"🚨 DB ROLLBACK: {e}")
+        db.rollback()
+        raise
     finally:
+        print("🔒 DB CLOSE")
         db.close()
+
 
 
 MIGRATION_SQL = """
@@ -53,8 +76,29 @@ def run_migrations() -> None:
         connection.exec_driver_sql(MIGRATION_SQL)
 
 def init_metadata_db():
-    Base.metadata.create_all(bind=engine)
+    db_ok = check_db_connection()
+    if db_ok:
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("Таблицы созданы")
+        except Exception as e:
+            print(f"Ошибка создания таблиц: {e}")
+    
+def check_db_connection(max_retries=3, delay=2):
 
+    print('checking db connection')
+    for attempt in range(max_retries):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print("БД доступна")
+            return True
+        except Exception as e:
+            print(f"Попытка {attempt+1}/{max_retries}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+    print("БД недоступна")
+    return False
 
 #     /*CREATE TABLE connections (
 #     id SERIAL PRIMARY KEY,

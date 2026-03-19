@@ -8,11 +8,14 @@ from .TaskHistService import TaskHistService
 
 class TaskService:
     taskRepository: TaskRepository
+    taskHistRepository: TaskHistService
 
     def __init__(
-        self, taskRepository: TaskRepository = Depends()
+        self, taskRepository: TaskRepository = Depends(),
+        taskHistRepository: TaskHistService = Depends()
     ) -> None:
         self.taskRepository = taskRepository
+        self.taskHistRepository = taskHistRepository
 
     def create_task(self,
         task_id: int,
@@ -38,32 +41,30 @@ class TaskService:
             notifications=notifications,
             comment=comment
         )
-        new_task.task_deps_uid = self.generate_id(task_id)
-        new_task.created_dt = datetime.now()
-        new_task.last_change_dt = datetime.now()
+        new_task.task_uid = self.generate_id(task_id)
+        
+        self.taskRepository.create(new_task)
+        self.taskHistRepository.create_task(new_task.task_uid,new_task.task_id)
 
-        TaskHistService.create_task(task_id,new_task.task_deps_uid)
-
-        return self.taskRepository.create(new_task)
+        return new_task
 
 
     def get_task_by_id(self,task_id: int) -> Task | None:
         return self.taskRepository.get(task_id)
     
-    def generate_id(task_id):
+    def generate_id(self, task_id: int) -> int:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        return timestamp*1000+task_id
+        return int(timestamp)*1000+task_id
     
     def get_tasks(self) -> List[Task]:
         return self.taskRepository.get_tasks()
 
 
     def update(self, task: Task) -> Task:
-        task.last_change_dt = datetime.now()
         return self.taskRepository.update(task)
 
-    def delete(self,id: int) -> None:
-        return self.taskRepository.delete(Task(task_id=id))
+    def delete(self,task: Task) -> None:
+        return self.taskRepository.delete(task)
 
 
 

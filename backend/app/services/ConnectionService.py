@@ -38,3 +38,6 @@ class ConnectionService:
     def get_connection_by_name(self,name: str) -> Connection | None:
                  
         return self.connectionRepository.get(name)
+    
+    def delete(self,connection: Connection) -> None:
+        return self.connectionRepository.delete(connection)

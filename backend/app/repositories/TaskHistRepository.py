@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.exc import IntegrityError
-from fastapi import Depends
+from fastapi import Depends,HTTPException,status
 from sqlalchemy.orm import Session, lazyload
 
 from ..configs.Database import get_orm_connection
@@ -14,14 +14,21 @@ class TaskHistRepository:
     ) -> None:
         self.db = db
 
-    def get(self, task_uid: int) -> TaskHist:      
-        return self.db.query(TaskHist).get(task_uid)
+    def get(self, id: int) -> TaskHist:      
+        return self.db.query(TaskHist).filter(TaskHist.id == id).first()
 
     def get_task_hist(self) -> List[TaskHist]:
-        return self.db.query(TaskHist)
+        return self.db.query(TaskHist).all()
     
     def create(self, taskHist: TaskHist) -> TaskHist:
         self.db.add(taskHist)
+
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Connection with name '{taskHist.task_uid}' already exists")
+    
         self.db.commit()
         self.db.refresh(taskHist)
         return taskHist

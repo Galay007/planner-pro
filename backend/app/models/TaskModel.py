@@ -1,6 +1,5 @@
-from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text
+    Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, func
 )
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 from ..configs.Database import Base
@@ -10,7 +9,7 @@ class Task(Base):
     __tablename__ = 'tasks'
   
     task_uid = Column(BigInteger, primary_key=True, autoincrement=False)
-    task_id = Column(BigInteger, nullable=False)
+    task_id = Column(BigInteger, unique=True, nullable=False)
     control = Column(String, nullable=False, default='stop')
     owner = Column(String, nullable=False)
     task_group = Column(String, nullable=True)
@@ -23,8 +22,8 @@ class Task(Base):
     notifications = Column(Boolean, nullable=False, default=False)
     logs_text = Column(Text,nullable=True)
     comment = Column(Text,nullable=True)
-    created_dt = Column(TIMESTAMP(timezone=False),server_default=text('CURRENT_TIMESTAMP'))
-    last_change_dt = Column(TIMESTAMP(timezone=False),server_default=text('CURRENT_TIMESTAMP')    )
+    created_dt = Column(DateTime(timezone=False),server_default=func.now()) 
+    last_change_dt = Column(DateTime(timezone=False), server_default=func.now(),onupdate=func.now() )
 
     __table_args__ = (
         CheckConstraint("control IN ('play', 'stop')", name='check_control'),

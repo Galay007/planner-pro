@@ -1,30 +1,41 @@
+import logging
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from .routers.ConnectionRouter import ConnectionRouter
 from .routers.TaskRouter import TaskRouter
+from .routers.TaskHistRouter import TaskHistRouter
 from .configs.Config import settings
 from .configs.Database import get_connection, run_migrations, init_metadata_db
 from .schemas55 import Task, TaskCreate, TaskPropertiesBase, TaskPropertiesRecord, TaskReplace
+from .exceptions import register_db_exception_handlers
 
 # from sqlalchemy.ext.asyncio import AsyncSession, create_engine  # для ассинхронных запросов
 # from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import sessionmaker
+
+logging.basicConfig(
+    level=logging.WARNING,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%H:%M:%S"
+)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     run_migrations()
     yield
 
+
+
 init_metadata_db()
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
-
+register_db_exception_handlers(app)
 
 app.include_router(ConnectionRouter)
 app.include_router(TaskRouter)
+app.include_router(TaskHistRouter)
 # app.include_router(items.router)
 
 app.add_middleware(
@@ -39,6 +50,8 @@ app.add_middleware(
     allow_methods=["*"], 
     allow_headers=["*"],  
 )
+
+
 
 def _to_task_properties_record(row: dict) -> TaskPropertiesRecord:
     return TaskPropertiesRecord(
@@ -151,3 +164,5 @@ def delete_task_properties(task_id: int) -> None:
         )
     if deleted.rowcount == 0:
         raise HTTPException(status_code=404, detail="Task properties not found")
+    
+

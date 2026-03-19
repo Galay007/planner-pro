@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import (
-    BigInteger, TIMESTAMP, text
+    BigInteger, TIMESTAMP, text, DateTime, Column, func
 )
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 from ..configs.Database import Base
@@ -9,15 +9,9 @@ from ..configs.Database import Base
 class TaskHist(Base):
     __tablename__ = 'tasks_hist'
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    task_uid: Mapped[int] = mapped_column(BigInteger, primary_key=False, autoincrement=False)
-    task_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    deleted_dt: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=False), nullable=True)
-    created_dt: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), 
-        server_default=text('CURRENT_TIMESTAMP')
-    )
-    last_change_dt: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=False), 
-        server_default=text('CURRENT_TIMESTAMP')
-    )
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    task_uid = Column(BigInteger, unique=True, nullable=False)
+    task_id = Column(BigInteger, nullable=False)
+    deleted_dt = Column(TIMESTAMP(timezone=False), nullable=True)
+    created_dt = Column(DateTime(timezone=False),server_default=func.now()) 
+    last_change_dt = Column(DateTime(timezone=False), server_default=func.now(),onupdate=func.now() )
