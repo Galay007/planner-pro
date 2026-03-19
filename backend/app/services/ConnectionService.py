@@ -1,6 +1,7 @@
 from fastapi import Depends
 from ..repositories.ConnectionRepository import ConnectionRepository
 from ..models.ConnectionModel import Connection
+from typing import List
 
 class ConnectionService:
     connectionRepository: ConnectionRepository
@@ -30,14 +31,17 @@ class ConnectionService:
             login=login,
             db_path=db_path
         )
-        new_connection.password = password  # setter сам зашифрует
+        new_connection.password = password  # setter сам зашифрует пароль
 
         return self.connectionRepository.create(new_connection)
 
 
-    def get_connection_by_name(self,name: str) -> Connection | None:
+    def get_by_name(self,name: str) -> Connection | None:
                  
         return self.connectionRepository.get(name)
     
     def delete(self,connection: Connection) -> None:
         return self.connectionRepository.delete(connection)
+    
+    def get_all(self) -> List[Connection]:
+        return self.connectionRepository.get_all()

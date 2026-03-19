@@ -1,7 +1,7 @@
 from fastapi import Depends
 from ..repositories.TaskRepository import TaskRepository
 from ..models.TaskModel import Task
-from datetime import datetime
+from ..utils.datetime_utils import DateTimeUtils
 from typing import List
 from .TaskHistService import TaskHistService
 
@@ -23,7 +23,6 @@ class TaskService:
         owner: str,
         task_group: str | None,
         task_deps_id: int | None,
-        task_deps_uid: int | None,
         status: str,
         notifications: bool,
         comment: str | None,
@@ -36,15 +35,18 @@ class TaskService:
             owner=owner,
             task_group=task_group,
             task_deps_id=task_deps_id,
-            task_deps_uid=task_deps_uid,
             status=status,
             notifications=notifications,
             comment=comment
         )
         new_task.task_uid = self.generate_id(task_id)
         
+        dt_time = DateTimeUtils.local_wo_micr()
+        
+        new_task.last_change_dt = dt_time
+        
         self.taskRepository.create(new_task)
-        self.taskHistRepository.create_task(new_task.task_uid,new_task.task_id)
+        self.taskHistRepository.create_task(new_task.task_uid,new_task.task_id,dt_time)
 
         return new_task
 
@@ -53,18 +55,32 @@ class TaskService:
         return self.taskRepository.get(task_id)
     
     def generate_id(self, task_id: int) -> int:
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = DateTimeUtils.now_str()
         return int(timestamp)*1000+task_id
     
-    def get_tasks(self) -> List[Task]:
-        return self.taskRepository.get_tasks()
+    def get_all(self) -> List[Task]:
+        return self.taskRepository.get_all()
 
 
     def update(self, task: Task) -> Task:
+        task.last_change_dt = DateTimeUtils.local_wo_micr()
+        self.taskHistRepository.update_last_change_date(task.task_uid,task.last_change_dt)
         return self.taskRepository.update(task)
 
-    def delete(self,task: Task) -> None:
-        return self.taskRepository.delete(task)
+    def delete(self,task: Task) -> int:
+        self.taskRepository.delete(task)
 
+        
+        task_temp = self.get_task_by_id(task.task_id)
+        if task_temp:
+            print (task_temp.task_id)
 
+        dt_delete = DateTimeUtils.local_wo_micr()
+        self.taskHistRepository.update_deleted_date(task.task_uid,dt_delete)
 
+    def check_control():
+        pass
+        #ДОБАВИТЬ ПЕРЕКЛЮЧЕНИЕ CONTROL В OFF ПЕРЕД УДАЛЕНИЕМ TASK_ID, У КОГО TASK_DEPS_ID == TASK_ID deleting
+
+        #ДОБАВИТЬ ПЕРЕКЛЮЧЕНИЕ CONTROL В OFF ПЕРЕД УДАЛЕНИЕМ CONNECTION, У КОГО PLAY И CONNECTION.NAME deleting
+        

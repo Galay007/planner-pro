@@ -18,29 +18,25 @@ class TaskRepository:
          # self.db.query(Task).get(task_id)  если поле PK
         return self.db.query(Task).filter(Task.task_id == task_id).first()
 
-    def get_tasks(self) -> List[Task]:
+    def get_all(self) -> List[Task]:
+      
         return self.db.query(Task).all()
     
     def create(self, task: Task) -> Task:
         self.db.add(task)
-
-        try:
-            self.db.commit()
-        except IntegrityError:
-            self.db.rollback()
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Connection with name '{task.task_id}' already exists")
-        
-        self.db.commit()
-        self.db.refresh(task)
+        self.db.flush()
         return task
 
     def delete(self, task: Task) -> None:
         self.db.delete(task)
-        self.db.commit()
         self.db.flush()
+        # task = self.db.get(Task, task.task_uid)
+        # if task:
+        #     self.db.delete(task)
+        #     self.db.commit()
+
 
     def update(self, task: Task) -> Task:
         self.db.merge(task)
-        self.db.commit()
-        self.db.refresh(task)
+        self.db.flush()
         return task

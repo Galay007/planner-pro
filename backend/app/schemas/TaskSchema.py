@@ -8,7 +8,6 @@ class TaskCreate(BaseModel):
     owner: str
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None
-    task_deps_uid: Optional[int] = None
     status: str
     notifications: bool
     comment: Optional[str] = None
@@ -21,7 +20,6 @@ class TaskOut(BaseModel):
     owner: str
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None
-    task_deps_uid: Optional[int] = None
     status: str
     notifications: bool
     comment: Optional[str] = None

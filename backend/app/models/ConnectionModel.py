@@ -5,6 +5,7 @@ from sqlalchemy import (
 from cryptography.fernet import Fernet
 from ..configs.Config import settings
 from ..configs.Database import Base
+from ..utils.datetime_utils import DateTimeUtils
 
 
 FERNET_KEY = settings.fernet_key
@@ -23,7 +24,7 @@ class Connection(Base):
     login = Column(String(255), nullable=True)
     pass_str = Column(Text, nullable=True)    
     db_path = Column(Text,nullable=True)    
-    created_at = Column(DateTime(timezone=False),server_default=func.now())   
+    created_at = Column(DateTime(timezone=False),default=DateTimeUtils.local_wo_micr)   
 
 
     @property

@@ -36,7 +36,6 @@ register_db_exception_handlers(app)
 app.include_router(ConnectionRouter)
 app.include_router(TaskRouter)
 app.include_router(TaskHistRouter)
-# app.include_router(items.router)
 
 app.add_middleware(
     CORSMiddleware,

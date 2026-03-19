@@ -1,7 +1,6 @@
 from fastapi import Depends
 from ..repositories.TaskHistRepository import TaskHistRepository
 from ..models.TaskHistModel import TaskHist
-from datetime import datetime
 from typing import List
 from datetime import datetime
 
@@ -15,37 +14,44 @@ class TaskHistService:
 
     def create_task(self,
         task_uid: int,
-        task_id: int
+        task_id: int,
+        dt_time: datetime
         ) -> TaskHist:
         
         new_task_hist = TaskHist(
             task_uid=task_uid,
-            task_id=task_id
+            task_id=task_id,
+            created_dt=dt_time,
+            last_change_dt=dt_time
         )
 
         return self.taskHistRepository.create(new_task_hist)
 
 
-    def get_task_hist_by_uid(self,task_uid: int) -> TaskHist | None:
+    def get_by_uid(self,task_uid: int) -> TaskHist | None:
             
-        return self.taskHistRepository.get(task_uid)
+        return self.taskHistRepository.get_by_uid(task_uid)
     
-    def get_task_by_id(self,id: int) -> TaskHist | None:
-        return self.taskHistRepository.get(id)
+    def get_by_id(self,id: int) -> TaskHist | None:
+        return self.taskHistRepository.get_by_id(id)
     
-    def get_task_hist(self) -> List[TaskHist]:
-        return self.taskHistRepository.get_task_hist()
+    def get_all(self) -> List[TaskHist]:
+        return self.taskHistRepository.get_all()
 
     def update(self, taskHist: TaskHist) -> TaskHist:
 
         return self.taskHistRepository.update(taskHist)
     
-    def update_deleted_date(self,task_uid: int,delete_dt: datetime) -> None:
-        taskHist = self.get_task_hist_by_uid(task_uid)
-
-        if taskHist:
-            taskHist.deleted_dt = delete_dt
-            self.update(taskHist)
+    def update_deleted_date(self,task_uid: int, delete_dt: datetime) -> None:
+        taskHist = self.get_by_uid(task_uid)
+        taskHist.deleted_dt = delete_dt
+        taskHist.last_change_dt = delete_dt
+        self.taskHistRepository.update(taskHist)
+    
+    def update_last_change_date(self,task_uid:int,change_dt: datetime):
+        taskHist = self.get_by_uid(task_uid)
+        taskHist.last_change_dt=change_dt
+        self.taskHistRepository.update(taskHist)
 
 
 

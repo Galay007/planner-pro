@@ -13,65 +13,43 @@ ConnectionRouter = APIRouter(
 
 @ConnectionRouter.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
 def create_connection_handler(payload: ConnectionCreate, connectionService: ConnectionService = Depends()):
-    try:
-        new_connection = connectionService.create_connection(
-            name=payload.name,
-            conn_type=payload.conn_type,
-            host=payload.host,
-            port=payload.port,
-            db_name=payload.db_name,
-            login=payload.login,
-            password=payload.password,
-            db_path=payload.db_path
-        )
+    
+    new_connection = connectionService.create_connection(
+        name=payload.name,
+        conn_type=payload.conn_type,
+        host=payload.host,
+        port=payload.port,
+        db_name=payload.db_name,
+        login=payload.login,
+        password=payload.password,
+        db_path=payload.db_path
+    )
 
-    # except IntegrityError as e:
-    #     logger.error(f"Integrity error for connection '{payload.name}': {e}")
-    #     raise HTTPException(
-    #         status_code=status.HTTP_409_CONFLICT, 
-    #         detail=f"Connection with name '{payload.name}' already exists"
-    #     )
+    connection = connectionService.get_by_name(new_connection.name)
 
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
-            detail="Database service unavailable"
-        )
-
-    return new_connection.normalize()
+    return connection.normalize()
 
 
 @ConnectionRouter.get("/{name}")
 def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
-    connection = connectionService.get_connection_by_name(name)
-    
-    if connection is None:
-        logger.warning(f"Connection '{name}' not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Connection '{name}' not found")
+    connection = connectionService.get_by_name(name)
+    check_is_none(connection)
     
     return connection.build_sqlalchemy_url()
 
 @ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(name: str, connectionService: ConnectionService = Depends()
-):
-    connection = connectionService.get_connection_by_name(name)
-    if connection is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Connection '{name}' not found")
+def delete(name: str, connectionService: ConnectionService = Depends()):
+    connection = connectionService.get_by_name(name)
+    check_is_none(connection)
     
     return connectionService.delete(connection)
 
-# POST /connections
-# Content-Type: application/json
+@ConnectionRouter.get("")
+def get_tasks(connectionService: ConnectionService = Depends()):
 
-# {
-#   "name": "pg_local",
-#   "conn_type": "postgresql",
-#   "host": "localhost",
-#   "port": 5432,
-#   "schema_name": "mydb",
-#   "login": "user",
-#   "password": "secret_pwd",
-#   "path_db": ""
-# }
+    return connectionService.get_all()
+
+def check_is_none(param):
+    if param is None:
+        logger.warning(f"Connection task '{param}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Connection task '{param}' not found")

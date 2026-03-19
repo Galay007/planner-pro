@@ -13,19 +13,20 @@ class Task(Base):
     control = Column(String, nullable=False, default='stop')
     owner = Column(String, nullable=False)
     task_group = Column(String, nullable=True)
-    last_run = Column(TIMESTAMP(timezone=False))
     schedule = Column(String, nullable=True)
-    cron_expression = Column(String, nullable=True)
     task_deps_id = Column(BigInteger,ForeignKey('tasks.task_id', ondelete='SET NULL'),nullable=True)
-    task_deps_uid = Column(BigInteger,nullable=True)
     status = Column(String, nullable=False, default='not active')
     notifications = Column(Boolean, nullable=False, default=False)
-    logs_text = Column(Text,nullable=True)
-    comment = Column(Text,nullable=True)
-    created_dt = Column(DateTime(timezone=False),server_default=func.now()) 
-    last_change_dt = Column(DateTime(timezone=False), server_default=func.now(),onupdate=func.now() )
+    log_text = Column(Text,nullable=True)
+    comment = Column(Text,nullable=True) 
+    last_change_dt = Column(DateTime(timezone=False), nullable=False )
 
     __table_args__ = (
         CheckConstraint("control IN ('play', 'stop')", name='check_control'),
         CheckConstraint("status IN ('not active', 'running', 'success', 'error')", name='check_status'),
     )
+    def return_id_uid(self):
+            return {
+                "task_id": self.task_id.__str__(),
+                "task_uid": self.task_uid.__str__()
+            }

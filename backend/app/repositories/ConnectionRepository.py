@@ -15,40 +15,16 @@ class ConnectionRepository:
     ) -> None:
         self.db = db
 
-    def list(
-        self,
-        name: Optional[str],
-        limit: Optional[int],
-        start: Optional[int]
-    ) -> List[Connection]:
-        query = self.db.query(Connection)
-
-        if name:
-            query = query.filter_by(name=name)
-
-        return query.offset(start).limit(limit).all()
-
     def get(self, name: str) -> Connection:      
         return self.db.query(Connection).filter(Connection.name == name).first()
 
     def create(self, connection: Connection) -> Connection:
         self.db.add(connection)
-        try:
-            self.db.commit()
-        except IntegrityError:
-            self.db.rollback()
-            raise ValueError(f"Connection with name '{connection.name}' already exists")
-
-        self.db.refresh(connection)
-        return connection
-
-    def update(self, id: int, connection: Connection) -> Connection:
-        connection.id = id
-        self.db.merge(connection)
-        self.db.commit()
+        self.db.flush()
         return connection
 
     def delete(self, connection: Connection) -> None:
         self.db.delete(connection)
-        self.db.commit()
-        self.db.flush()
+
+    def get_all(self) -> List[Connection]:
+        return self.db.query(Connection).all()

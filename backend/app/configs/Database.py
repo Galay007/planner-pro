@@ -25,28 +25,31 @@ SessionLocal = sessionmaker(
     autoflush=False, 
     bind=engine
 )
-
+db_session = scoped_session(SessionLocal)
 
 @contextmanager
 def get_connection():
     with engine.begin() as connection:
-        print(f" Gave connection")
+        print(f"🟢 Gave connection")
         yield connection
 
 
 def get_orm_connection():
-    db = SessionLocal()
+
     try:
-        print(f"🚨 Gave pool")
-        yield db
-        db.commit()
+        print(f"🟢 Given db connection from pool")
+        yield db_session()
+        db_session.commit()
     except Exception as e:
-        print(f"🚨 DB ROLLBACK: {e}")
-        db.rollback()
+        print(f"🚨 DB ROLLBACK: {type(e).__name__}")
+        # print(f"{e.args[0] if e.args else e}")
+        print({str(e).split('\n')[0]})
+        # print(f"DB ROLLBACK: {e}")
+        db_session.rollback()
         raise
     finally:
-        print("🔒 DB CLOSE")
-        db.close()
+        print("🔒 Connection from pool to DB removed")
+        db_session.remove()
 
 
 

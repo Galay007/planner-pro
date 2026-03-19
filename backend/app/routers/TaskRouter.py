@@ -1,11 +1,68 @@
 from fastapi import HTTPException, APIRouter, Depends, status
 from ..schemas.TaskSchema import TaskCreate, TaskOut
 from ..services.TaskService import TaskService
+import logging
 
+logger = logging.getLogger(__name__)
 
 TaskRouter = APIRouter(
     prefix="/tasks"
 )
+
+@TaskRouter.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
+def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
+
+    new_task = taskService.create_task(
+        task_id=payload.task_id,
+        control=payload.control,
+        owner=payload.owner,
+        task_group=payload.task_group,
+        task_deps_id=payload.task_deps_id,
+        status=payload.status,
+        notifications=payload.notifications,
+        comment=payload.comment
+        )
+
+    return new_task
+
+@TaskRouter.delete("/{task_id}")
+def delete(task_id: int, taskService: TaskService = Depends()):
+    task = taskService.get_task_by_id(task_id)
+    check_is_none(task)
+    taskService.delete(task)
+
+    return task.return_id_uid()
+
+@TaskRouter.get("/{task_id}")
+def get_task_by_id(task_id: int, taskService: TaskService = Depends()):
+    task = taskService.get_task_by_id(task_id)
+    check_is_none(task)
+    
+    return task
+
+@TaskRouter.get("")
+def get_tasks(taskService: TaskService = Depends()):
+    return taskService.get_all()
+
+@TaskRouter.put("/{task_id}")
+def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
+    task = taskService.get_task_by_id(task_id)
+    check_is_none(task)
+    
+    for key, value in data.items():
+        if hasattr(task, key):
+            setattr(task, key, value)
+    
+    return taskService.update(task)
+
+def check_is_none(param):
+    if param is None:
+        logger.warning(f"Task '{param}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task '{param}' not found")
+
+
+
+
 
 # @app.get("/tasks", response_model=list[Task])
 # def list_tasks() -> list[Task]:
@@ -34,68 +91,6 @@ TaskRouter = APIRouter(
 #         )
 #     if deleted.rowcount == 0:
 #         raise HTTPException(status_code=404, detail="Task not found")
-
-
-@TaskRouter.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
-def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
-    try:
-        new_task = taskService.create_task(
-            task_id=payload.task_id,
-            control=payload.control,
-            owner=payload.owner,
-            task_group=payload.task_group,
-            task_deps_id=payload.task_deps_id,
-            task_deps_uid=payload.task_deps_uid,
-            status=payload.status,
-            notifications=payload.notifications,
-            comment=payload.comment
-        )
-    except ValueError as e:
-
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
-    if not new_task:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Task was not created")
-
-    return new_task
-
-@TaskRouter.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete(task_id: int, taskService: TaskService = Depends()
-):
-    task = taskService.get_task_by_id(task_id)
-
-    if task is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task '{task_id}' not found")
-    
-    return taskService.delete(task)
-
-@TaskRouter.get("/{task_id}")
-def get_task_by_id(task_id: int, taskService: TaskService = Depends()
-):
-    task = taskService.get_task_by_id(task_id)
-    if task is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Task '{task_id}' not found")
-    
-    return task
-
-@TaskRouter.get("/")
-def get_tasks(task_id: int, taskService: TaskService = Depends()
-):
-    return taskService.get_tasks()
-
-@TaskRouter.put("/{task_id}")
-def update_task(task_id: int, data: dict, taskService: TaskService = Depends()
-):
-    task = get_task_by_id(task_id)
-    if not task:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    
-    for key, value in data.items():
-        if hasattr(task, key):
-            setattr(task, key, value)
-    
-    return taskService.update(task)
-
 
 # @app.post("/tasks/{task_id}", response_model=Task, status_code=201)
 # def create_task222(task_id: int, payload: TaskCreate) -> Task:
