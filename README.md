@@ -1,4 +1,4 @@
-# Schedule Buddy Backend (Python + REST + PostgreSQL 15)
+# Planner Pro Backend (Python + REST + PostgreSQL 15)
 
 FastAPI backend for scheduler tasks from `src/pages/Scheduler.tsx` / `src/types/task.ts`.
 

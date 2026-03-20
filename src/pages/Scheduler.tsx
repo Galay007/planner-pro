@@ -55,7 +55,7 @@ type TaskPropertiesDraft = {
 };
 
 const Scheduler = () => {
-  const apiBaseUrl = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+  const apiBaseUrl = "http://localhost:8000";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [nextId, setNextId] = useState(1);
