@@ -1,6 +1,7 @@
 from fastapi import Depends
 from ..repositories.TaskHistRepository import TaskHistRepository
 from ..models.TaskHistModel import TaskHist
+from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 
@@ -8,11 +9,11 @@ class TaskHistService:
     taskHistRepository: TaskHistRepository
 
     def __init__(
-        self, taskHistRepository: TaskHistRepository = Depends()
+        self, db: Session
     ) -> None:
-        self.taskHistRepository = taskHistRepository
+        self.taskHistRepository = TaskHistRepository(db)       
 
-    def create_task(self,
+    def create(self,
         task_uid: int,
         task_id: int,
         dt_time: datetime
@@ -22,14 +23,13 @@ class TaskHistService:
             task_uid=task_uid,
             task_id=task_id,
             created_dt=dt_time,
-            last_change_dt=dt_time
+            change_dt=dt_time
         )
 
         return self.taskHistRepository.create(new_task_hist)
 
 
-    def get_by_uid(self,task_uid: int) -> TaskHist | None:
-            
+    def get_by_uid(self,task_uid: int) -> TaskHist | None:           
         return self.taskHistRepository.get_by_uid(task_uid)
     
     def get_by_id(self,id: int) -> TaskHist | None:
@@ -45,12 +45,12 @@ class TaskHistService:
     def update_deleted_date(self,task_uid: int, delete_dt: datetime) -> None:
         taskHist = self.get_by_uid(task_uid)
         taskHist.deleted_dt = delete_dt
-        taskHist.last_change_dt = delete_dt
+        taskHist.change_dt = delete_dt
         self.taskHistRepository.update(taskHist)
     
     def update_last_change_date(self,task_uid:int,change_dt: datetime):
         taskHist = self.get_by_uid(task_uid)
-        taskHist.last_change_dt=change_dt
+        taskHist.change_dt=change_dt
         self.taskHistRepository.update(taskHist)
 
 

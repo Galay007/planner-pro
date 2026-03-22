@@ -8,14 +8,13 @@ from .TaskHistService import TaskHistService
 
 class TaskService:
     taskRepository: TaskRepository
-    taskHistRepository: TaskHistService
+    taskHistService: TaskHistService
 
     def __init__(
-        self, taskRepository: TaskRepository = Depends(),
-        taskHistRepository: TaskHistService = Depends()
+        self, taskRepository: TaskRepository = Depends()
     ) -> None:
         self.taskRepository = taskRepository
-        self.taskHistRepository = taskHistRepository
+        self.taskHistService = TaskHistService(self.taskRepository.get_db())
 
     def create_task(self,
         task_id: int,
@@ -42,11 +41,10 @@ class TaskService:
         new_task.task_uid = self.generate_id(task_id)
         
         dt_time = DateTimeUtils.local_wo_micr()
-        
-        new_task.last_change_dt = dt_time
-        
+        new_task.change_dt = dt_time
+
         self.taskRepository.create(new_task)
-        self.taskHistRepository.create_task(new_task.task_uid,new_task.task_id,dt_time)
+        self.taskHistService.create(new_task.task_uid, new_task.task_id, dt_time)
 
         return new_task
 
@@ -63,11 +61,12 @@ class TaskService:
 
 
     def update(self, task: Task) -> Task:
-        task.last_change_dt = DateTimeUtils.local_wo_micr()
-        self.taskHistRepository.update_last_change_date(task.task_uid,task.last_change_dt)
+        task.change_dt = DateTimeUtils.local_wo_micr()
+        self.taskHistService.update_last_change_date(task.task_uid, task.change_dt)
         return self.taskRepository.update(task)
 
     def delete(self,task: Task) -> int:
+        # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
 
         
@@ -76,7 +75,7 @@ class TaskService:
             print (task_temp.task_id)
 
         dt_delete = DateTimeUtils.local_wo_micr()
-        self.taskHistRepository.update_deleted_date(task.task_uid,dt_delete)
+        self.taskHistService.update_deleted_date(task.task_uid, dt_delete)
 
     def check_control():
         pass

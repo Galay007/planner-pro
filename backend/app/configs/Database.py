@@ -25,20 +25,22 @@ SessionLocal = sessionmaker(
     autoflush=False, 
     bind=engine
 )
-db_session = scoped_session(SessionLocal)
+# db_session = scoped_session(SessionLocal)
 
-@contextmanager
-def get_connection():
-    with engine.begin() as connection:
-        print(f"🟢 Gave connection")
-        yield connection
+db_session = SessionLocal()
+
+# @contextmanager
+# def get_connection():
+#     with engine.begin() as connection:
+#         print(f"🟢 Gave connection")
+#         yield connection
 
 
 def get_orm_connection():
 
     try:
         print(f"🟢 Given db connection from pool")
-        yield db_session()
+        yield db_session
         db_session.commit()
     except Exception as e:
         print(f"🚨 DB ROLLBACK: {type(e).__name__}")
@@ -49,40 +51,16 @@ def get_orm_connection():
         raise
     finally:
         print("🔒 Connection from pool to DB removed")
-        db_session.remove()
-
-
-
-MIGRATION_SQL = """
-
-
-CREATE TABLE IF NOT EXISTS task_properties (
-    task_uid BIGINT PRIMARY KEY REFERENCES tasks(task_uid) ON DELETE CASCADE,
-    task_id BIGINT NOT NULL,
-    launch_day TEXT NOT NULL,
-    launch_time TEXT NOT NULL,
-    end_day TEXT NOT NULL,
-    end_time TEXT NOT NULL,
-    file_type TEXT NOT NULL DEFAULT 'SQL' CHECK (file_type IN ('SQL', 'PY', 'BAT')),
-    connection TEXT NOT NULL,
-    notification_channel TEXT NOT NULL,
-    notification_value TEXT NOT NULL,
-    cron_expression TEXT NOT NULL
-);
-
-
-"""
-
-
-def run_migrations() -> None:
-    with get_connection() as connection:
-        connection.exec_driver_sql(MIGRATION_SQL)
+        db_session.close()
 
 def init_metadata_db():
     db_ok = check_db_connection()
     if db_ok:
         try:
             Base.metadata.create_all(bind=engine)
+            for table in Base.metadata.sorted_tables:
+                print(f"  - {table.name}")
+
             print("Таблицы созданы")
         except Exception as e:
             print(f"Ошибка создания таблиц: {e}")

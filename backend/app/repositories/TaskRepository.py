@@ -1,7 +1,7 @@
 from typing import List, Optional
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from fastapi import Depends,HTTPException, status
-from sqlalchemy.orm import Session, lazyload
+from sqlalchemy.orm import Session, lazyload, selectinload
 
 from ..configs.Database import get_orm_connection
 from ..models.TaskModel import Task
@@ -19,8 +19,10 @@ class TaskRepository:
         return self.db.query(Task).filter(Task.task_id == task_id).first()
 
     def get_all(self) -> List[Task]:
-      
-        return self.db.query(Task).all()
+        return self.db.scalars(
+            select(Task)
+            .options(selectinload(Task.task_props))
+            ).all()
     
     def create(self, task: Task) -> Task:
         self.db.add(task)
@@ -40,3 +42,6 @@ class TaskRepository:
         self.db.merge(task)
         self.db.flush()
         return task
+    
+    def get_db(self) -> Session:
+        return self.db

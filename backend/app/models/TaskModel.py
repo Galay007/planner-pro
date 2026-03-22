@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
 from sqlalchemy import (
     Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, func
 )
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
 
+if TYPE_CHECKING:
+    from .TaskHistModel import TaskHist
+    from .TaskPropertiesModel import TaskProperty
 
 class Task(Base):
     __tablename__ = 'tasks'
@@ -19,12 +23,15 @@ class Task(Base):
     notifications = Column(Boolean, nullable=False, default=False)
     log_text = Column(Text,nullable=True)
     comment = Column(Text,nullable=True) 
-    last_change_dt = Column(DateTime(timezone=False), nullable=False )
+    change_dt = Column(DateTime(timezone=False), nullable=False )
 
     __table_args__ = (
         CheckConstraint("control IN ('play', 'stop')", name='check_control'),
         CheckConstraint("status IN ('not active', 'running', 'success', 'error')", name='check_status'),
     )
+
+    task_props: Mapped["TaskProperty"] = relationship(back_populates="task", lazy="select", passive_deletes=True )
+
     def return_id_uid(self):
             return {
                 "task_id": self.task_id.__str__(),

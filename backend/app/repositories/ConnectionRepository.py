@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload
 
@@ -27,4 +27,4 @@ class ConnectionRepository:
         self.db.delete(connection)
 
     def get_all(self) -> List[Connection]:
-        return self.db.query(Connection).all()
+        return self.db.scalars(select(Connection)).all()

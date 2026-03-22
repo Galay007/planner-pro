@@ -11,7 +11,7 @@ class ConnectionService:
     ) -> None:
         self.connectionRepository = connectionRepository
 
-    def create_connection(self,
+    def create(self,
         name: str,
         conn_type: str,
         host: str,

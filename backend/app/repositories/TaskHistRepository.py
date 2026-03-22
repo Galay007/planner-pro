@@ -1,15 +1,15 @@
 from typing import List, Optional
-from sqlalchemy.exc import IntegrityError
-from fastapi import Depends,HTTPException,status
-from sqlalchemy.orm import Session, lazyload
+from sqlalchemy import select
+from sqlalchemy.orm import Session, lazyload,selectinload
 from ..configs.Database import get_orm_connection
 from ..models.TaskHistModel import TaskHist
+from ..models.TaskModel import Task
 
 class TaskHistRepository:
     db: Session
 
     def __init__(
-        self, db: Session = Depends(get_orm_connection)
+        self, db
     ) -> None:
         self.db = db
 
@@ -20,7 +20,9 @@ class TaskHistRepository:
         return self.db.query(TaskHist).filter(TaskHist.task_uid == task_uid).first()
 
     def get_all(self) -> List[TaskHist]:
-        return self.db.query(TaskHist).all()
+        return self.db.scalars(
+            select(TaskHist)
+            ).all()
     
     def create(self, taskHist: TaskHist) -> TaskHist:
         self.db.add(taskHist)   

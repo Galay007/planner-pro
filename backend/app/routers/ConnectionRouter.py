@@ -14,7 +14,7 @@ ConnectionRouter = APIRouter(
 @ConnectionRouter.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
 def create_connection_handler(payload: ConnectionCreate, connectionService: ConnectionService = Depends()):
     
-    new_connection = connectionService.create_connection(
+    new_connection = connectionService.create(
         name=payload.name,
         conn_type=payload.conn_type,
         host=payload.host,
