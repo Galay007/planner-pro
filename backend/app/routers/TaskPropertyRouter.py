@@ -1,10 +1,11 @@
-from fastapi import HTTPException, APIRouter, Depends, status, Form,UploadFile,File
+from fastapi import HTTPException, APIRouter, Depends, status, Form,UploadFile,File,Path
 from ..schemas.TaskProperty import TaskPropertyCreate
 from ..services.TaskPropertyService import TaskPropertyService
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
 from datetime import datetime
-from typing import Optional,List
+from typing import Optional,List,Annotated
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,9 @@ def create_connection_handler(
     tg_chat_id: Optional[str] = Form(None),
     root_folder: str = Form(...),
     files: List[UploadFile] = File(...),    
-    propertyService: TaskPropertyService = Depends()):
+    taskPropertyService: TaskPropertyService = Depends()):
     
-    new_task_property = propertyService.create(
+    new_task_property = taskPropertyService.create(
         task_id=task_id,
         from_dt=from_dt,
         until_dt=until_dt,
@@ -44,45 +45,72 @@ def create_connection_handler(
 
     return new_task_property
 
-# @TaskPropertyRouter.post("", )
-# def create_connection_handler(payload: TaskPropertyCreate, propertyService: TaskPropertyService = Depends()):
+@TaskPropertyRouter.get("")
+def get_tasks(taskPropertyService: TaskPropertyService = Depends()):
+
+    return taskPropertyService.get_all()
+
+
+@TaskPropertyRouter.get("/{task_id}")
+def get_task_by_id(task_id: int, taskPropertyService: TaskPropertyService = Depends()):
+    task_property = taskPropertyService.get_by_id(task_id)
+    check_is_none(task_property, task_id)
     
-#     new_task_property = propertyService.create(
-#         from_dt=payload.from_dt,
-#         until_dt=payload.until_dt,
-#         connection_id=payload.connection_id,
-#         cron_expression=payload.cron_expression,
-#         task_type=payload.task_type,
-#         email=payload.email,
-#         tg_chat_id=payload.tg_chat_id,
-#         root_folder=payload.root_folder,
-#         files=payload.files,
+    return task_property
 
-#     )
-
-#     return new_task_property
-
-
-# @ConnectionRouter.get("/{name}")
-# def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
-#     connection = connectionService.get_by_name(name)
-#     check_is_none(connection)
+@TaskPropertyRouter.put("/{task_id}")
+def update_task_property(
     
-#     return connection.build_sqlalchemy_url()
-
-# @ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
-# def delete(name: str, connectionService: ConnectionService = Depends()):
-#     connection = connectionService.get_by_name(name)
-#     check_is_none(connection)
+    task_id: int = Path(...),
+    from_dt: Optional[datetime] = Form(None),
+    until_dt: Optional[datetime] = Form(None),
+    connection_id: Optional[int] = Form(None),
+    cron_expression: Optional[str] = Form(None),
+    task_type: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    tg_chat_id: Optional[str] = Form(None),
+    root_folder: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None),
+    taskPropertyService: TaskPropertyService = Depends()
+    ):
     
-#     return connectionService.delete(connection)
 
-# @ConnectionRouter.get("")
-# def get_tasks(connectionService: ConnectionService = Depends()):
+    # from pathlib import Path
+    # root_folder = str(Path(root_folder).as_posix())
 
-#     return connectionService.get_all()
+    if root_folder is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"Files for task property '{task_id}' are missing")
 
-# def check_is_none(param):
-#     if param is None:
-#         logger.warning(f"Connection task '{param}' not found")
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Connection task '{param}' not found")
+    task_property = taskPropertyService.get_by_id(task_id)
+    check_is_none(task_property, task_id)
+
+    if task_property.task_type != task_type and (files is None or len(files) == 0):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"No attached files for new task type '{task_type}'")
+    
+    if task_property.original_path != root_folder and (files is None or len(files) == 0):
+       
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"No attached files for new folder '{root_folder}'")
+
+    data = {
+        "from_dt": from_dt,
+        "until_dt": until_dt,
+        "connection_id": connection_id,
+        "cron_expression": cron_expression,
+        "original_path": str(root_folder),
+        "email": email,
+        "tg_chat_id": tg_chat_id
+    }
+
+    for key, value in data.items():
+        if value is not None and hasattr(task_property, key):
+            setattr(task_property, key, value)
+
+    updated_task_property = taskPropertyService.update(task_property, files, root_folder, task_type)
+
+    return updated_task_property
+
+
+def check_is_none(object, param):
+    if object is None:
+        logger.warning(f"Property task '{param}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Property task '{param}' not found")

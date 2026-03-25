@@ -31,7 +31,10 @@ class TaskPropertyService:
         ) -> TaskProperty:
 
 
-        root_path, needsToSave = self.taskFileService.check_folder_exists(task_id, task_type, root_folder)
+        storage_path, needsToSave = self.taskFileService.check_folder_exists(task_id, task_type, root_folder)
+
+        # from pathlib import Path
+        # original_path = str(Path(root_folder).as_posix())
 
         new_property = TaskProperty(
             task_id=task_id,
@@ -40,7 +43,8 @@ class TaskPropertyService:
             connection_id=connection_id,
             cron_expression=cron_expression,
             task_type=task_type,
-            storage_path=root_path,
+            original_path=root_folder,
+            storage_path=storage_path,
             email=email,
             tg_chat_id=tg_chat_id,
             change_dt=DateTimeUtils.local_wo_micr()
@@ -48,21 +52,37 @@ class TaskPropertyService:
 
         self.taskPropertyRepository.create(new_property)
 
-        valid_files = self.taskFileService.files_validation(needsToSave, task_type, root_path, files)
+        valid_files = self.taskFileService.files_validation_and_save(needsToSave, task_type, storage_path, files)
 
         for file in valid_files:
-            file_path = f'{root_path}/{file.filename}'
+            file_path = f'{storage_path}\{file.filename}'
             self.taskFileService.create(task_id, file.filename, file_path)
 
         return new_property
 
 
-    def get_by_name(self,name: str) -> TaskProperty | None:
+    def get_by_id(self,task_id: int) -> TaskProperty | None:
                  
-        return self.connectionRepository.get(name)
+        return self.taskPropertyRepository.get(task_id)
     
-    def delete(self,connection: TaskProperty) -> None:
-        return self.connectionRepository.delete(connection)
     
     def get_all(self) -> List[TaskProperty]:
-        return self.connectionRepository.get_all()
+        return self.taskPropertyRepository.get_all()
+    
+    def update(self, taskProperty: TaskProperty, files: list[UploadFile], new_root_folder: str, new_task_type: str) -> TaskProperty:
+
+        if files:
+            self.taskFileService.delete_files(taskProperty.task_id, taskProperty.task_type)
+            root_path, needsToSave = self.taskFileService.check_folder_exists(taskProperty.task_id, new_task_type, new_root_folder)
+            valid_files = self.taskFileService.files_validation_and_save(needsToSave, new_task_type, root_path, files)
+
+            for file in valid_files:
+                file_path = f'{root_path}\{file.filename}'
+                self.taskFileService.update(taskProperty.task_id, file.filename, file_path)
+            
+            taskProperty.storage_path = root_path
+
+        taskProperty.task_type = new_task_type
+        taskProperty.change_dt = DateTimeUtils.local_wo_micr()
+        
+        return self.taskPropertyRepository.update(taskProperty)

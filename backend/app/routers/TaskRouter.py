@@ -28,7 +28,7 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
 @TaskRouter.delete("/{task_id}")
 def delete(task_id: int, taskService: TaskService = Depends()):
     task = taskService.get_task_by_id(task_id)
-    check_is_none(task)
+    check_is_none(task, task_id)
     taskService.delete(task)
 
     return task.return_id_uid()
@@ -36,7 +36,7 @@ def delete(task_id: int, taskService: TaskService = Depends()):
 @TaskRouter.get("/{task_id}")
 def get_task_by_id(task_id: int, taskService: TaskService = Depends()):
     task = taskService.get_task_by_id(task_id)
-    check_is_none(task)
+    check_is_none(task, task_id)
     
     return task
 
@@ -47,7 +47,7 @@ def get_tasks(taskService: TaskService = Depends()):
 @TaskRouter.put("/{task_id}")
 def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
     task = taskService.get_task_by_id(task_id)
-    check_is_none(task)
+    check_is_none(task, task_id)
     
     for key, value in data.items():
         if hasattr(task, key):
@@ -55,8 +55,8 @@ def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
     
     return taskService.update(task)
 
-def check_is_none(param):
-    if param is None:
+def check_is_none(object, param):
+    if object is None:
         logger.warning(f"Task '{param}' not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task '{param}' not found")
 

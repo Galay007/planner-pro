@@ -15,8 +15,12 @@ class TaskPropertyRepository:
     ) -> None:
         self.db = db
 
-    def get(self, name: str) -> TaskProperty:      
-        return self.db.query(TaskProperty).filter(TaskProperty.name == name).first()
+    def get(self, task_id: int) -> TaskProperty:      
+        return self.db.scalar(
+            select(TaskProperty)
+            .where(TaskProperty.task_id == task_id)
+            .options(selectinload(TaskProperty.files))
+        )
 
     def create(self, taskProperty: TaskProperty) -> TaskProperty:
         self.db.add(taskProperty)
@@ -27,7 +31,18 @@ class TaskPropertyRepository:
         self.db.delete(taskProperty)
 
     def get_all(self) -> List[TaskProperty]:
-        return self.db.scalars(select(TaskProperty).options(selectinload(TaskProperty.files))).all()
+        return self.db.scalars(
+            select(TaskProperty)
+            .options(selectinload(TaskProperty.files))
+            ).all()
+    
+    def update(self, tasProperty: TaskProperty) -> TaskProperty:
+        self.db.merge(tasProperty)
+        self.db.flush()
+        self.db.refresh(tasProperty)
+        return tasProperty
     
     def get_db(self) -> Session:
         return self.db
+    
+    

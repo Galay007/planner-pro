@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import Session, lazyload,selectinload
 from ..configs.Database import get_orm_connection
 from ..models.TaskFileModel import TaskFile
@@ -23,6 +23,13 @@ class TaskFileRepository:
         return self.db.scalars(
             select(TaskFile)
             ).all()
+    
+    def delete_by_id(self, task_id: int):
+        self.db.execute(
+        delete(TaskFile).where(TaskFile.task_id==task_id)
+        )
+        self.db.flush()
+
     
     def create(self, taskFile: TaskFile) -> TaskFile:
         self.db.add(taskFile)   

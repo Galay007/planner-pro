@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, lazyload, selectinload
 
 from ..configs.Database import get_orm_connection
 from ..models.TaskModel import Task
+from ..models.TaskPropertiesModel import TaskProperty
 
 class TaskRepository:
     db: Session
@@ -14,15 +15,16 @@ class TaskRepository:
     ) -> None:
         self.db = db
 
-    def get(self, task_id: int) -> Task:      
-         # self.db.query(Task).get(task_id)  если поле PK
+    def get(self, task_id: int) -> Task:           
         return self.db.query(Task).filter(Task.task_id == task_id).first()
 
     def get_all(self) -> List[Task]:
         return self.db.scalars(
             select(Task)
-            .options(selectinload(Task.task_props))
-            ).all()
+            .options(
+                selectinload(Task.task_props).selectinload(TaskProperty.files)
+            )
+        ).all()
     
     def create(self, task: Task) -> Task:
         self.db.add(task)
@@ -32,11 +34,20 @@ class TaskRepository:
     def delete(self, task: Task) -> None:
         self.db.delete(task)
         self.db.flush()
-        # task = self.db.get(Task, task.task_uid)
-        # if task:
-        #     self.db.delete(task)
-        #     self.db.commit()
 
+    def get_files(self, task_id: int) -> Task:  
+        files = []    
+        num_files = self.db.scalar(
+            select(Task)
+            .where(Task.task_id==task_id)
+            .options(
+                selectinload(Task.task_props).selectinload(TaskProperty.files)
+            )
+        )
+        if num_files.task_props and num_files.task_props.files:
+            files = num_files.task_props.files
+        
+        return files
 
     def update(self, task: Task) -> Task:
         self.db.merge(task)

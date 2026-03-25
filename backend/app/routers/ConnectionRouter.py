@@ -33,14 +33,14 @@ def create_connection_handler(payload: ConnectionCreate, connectionService: Conn
 @ConnectionRouter.get("/{name}")
 def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
     connection = connectionService.get_by_name(name)
-    check_is_none(connection)
+    check_is_none(connection, name)
     
     return connection.build_sqlalchemy_url()
 
 @ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(name: str, connectionService: ConnectionService = Depends()):
     connection = connectionService.get_by_name(name)
-    check_is_none(connection)
+    check_is_none(connection, name)
     
     return connectionService.delete(connection)
 
@@ -49,7 +49,7 @@ def get_tasks(connectionService: ConnectionService = Depends()):
 
     return connectionService.get_all()
 
-def check_is_none(param):
-    if param is None:
+def check_is_none(object, param):
+    if object is None:
         logger.warning(f"Connection task '{param}' not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Connection task '{param}' not found")

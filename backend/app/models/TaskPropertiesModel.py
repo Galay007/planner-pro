@@ -18,6 +18,7 @@ class TaskProperty(Base):
     connection_id = Column(Integer, ForeignKey('connections.id', ondelete='SET NULL'), nullable=True)
     cron_expression = Column(String, nullable=True)
     task_type = Column(String, nullable=False)
+    original_path = Column(String, nullable=False)
     storage_path = Column(String, nullable=False)
     email = Column(String, nullable=True)
     tg_chat_id = Column(String, nullable=True)
