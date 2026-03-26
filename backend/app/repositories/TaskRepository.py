@@ -16,7 +16,13 @@ class TaskRepository:
         self.db = db
 
     def get(self, task_id: int) -> Task:           
-        return self.db.query(Task).filter(Task.task_id == task_id).first()
+        return self.db.scalar(
+            select(Task)
+            .where(Task.task_id==task_id)
+            .options(
+                selectinload(Task.task_props).selectinload(TaskProperty.files)
+            )
+        )
 
     def get_all(self) -> List[Task]:
         return self.db.scalars(

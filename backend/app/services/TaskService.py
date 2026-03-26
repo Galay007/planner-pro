@@ -18,11 +18,11 @@ class TaskService:
 
     def create_task(self,
         task_id: int,
-        control: str,
+        task_name: str,
+        task_control: str,
         owner: str,
         task_group: str | None,
         task_deps_id: int | None,
-        status: str,
         notifications: bool,
         comment: str | None,
 
@@ -30,11 +30,11 @@ class TaskService:
         
         new_task = Task(
             task_id=task_id,
-            control=control,
+            task_name=task_name,
+            task_control=task_control,
             owner=owner,
             task_group=task_group,
             task_deps_id=task_deps_id,
-            status=status,
             notifications=notifications,
             comment=comment
         )

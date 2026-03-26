@@ -19,7 +19,9 @@ class TaskPropertyRepository:
         return self.db.scalar(
             select(TaskProperty)
             .where(TaskProperty.task_id == task_id)
-            .options(selectinload(TaskProperty.files))
+            .options(
+                selectinload(TaskProperty.files).selectinload(TaskProperty.task)
+            )
         )
 
     def create(self, taskProperty: TaskProperty) -> TaskProperty:
@@ -33,8 +35,10 @@ class TaskPropertyRepository:
     def get_all(self) -> List[TaskProperty]:
         return self.db.scalars(
             select(TaskProperty)
-            .options(selectinload(TaskProperty.files))
-            ).all()
+            .options(
+                selectinload(TaskProperty.files).selectinload(TaskProperty.task)
+            )
+        ).all()
     
     def update(self, tasProperty: TaskProperty) -> TaskProperty:
         self.db.merge(tasProperty)

@@ -9,6 +9,7 @@ from .routers.TaskRouter import TaskRouter
 from .routers.TaskHistRouter import TaskHistRouter
 from .routers.TaskPropertyRouter import TaskPropertyRouter
 from .models.TaskFileModel import TaskFile
+from .models.TaskRunningModel import TaskRunning
 from .configs.Config import settings
 from .configs.Database import init_metadata_db
 from .schemas55 import Task, TaskCreate, TaskPropertiesBase, TaskPropertiesRecord, TaskReplace

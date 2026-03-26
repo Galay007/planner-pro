@@ -4,11 +4,11 @@ from pydantic import BaseModel, Field
 
 class TaskCreate(BaseModel):
     task_id: int
+    task_name: str
     control: str
     owner: str
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None
-    status: str
     notifications: bool
     comment: Optional[str] = None
 
@@ -16,6 +16,7 @@ class TaskCreate(BaseModel):
 class TaskOut(BaseModel):
     task_id: int
     task_uid: int
+    task_name: str
     control: str
     owner: str
     task_group: Optional[str] = None

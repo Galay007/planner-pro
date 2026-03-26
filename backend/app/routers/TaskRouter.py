@@ -1,4 +1,5 @@
 from fastapi import HTTPException, APIRouter, Depends, status
+from ..models.TaskModel import TaskStatusEnum, InRunningEnum
 from ..schemas.TaskSchema import TaskCreate, TaskOut
 from ..services.TaskService import TaskService
 import logging
@@ -14,11 +15,11 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
 
     new_task = taskService.create_task(
         task_id=payload.task_id,
+        task_name=payload.task_name,
         control=payload.control,
         owner=payload.owner,
         task_group=payload.task_group,
         task_deps_id=payload.task_deps_id,
-        status=payload.status,
         notifications=payload.notifications,
         comment=payload.comment
         )
@@ -49,6 +50,12 @@ def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
     task = taskService.get_task_by_id(task_id)
     check_is_none(task, task_id)
     
+    if data.get('control') == 'off' and task.in_running == TaskStatusEnum.ACTIVE:
+        task.status = TaskStatusEnum.NOT_ACTIVE
+        task.in_running = InRunningEnum.TO_CLEAN
+    elif data.get('control') == 'on' and task.in_running == TaskStatusEnum.NOT_ACTIVE:
+        task.status = TaskStatusEnum.ACTIVE
+
     for key, value in data.items():
         if hasattr(task, key):
             setattr(task, key, value)

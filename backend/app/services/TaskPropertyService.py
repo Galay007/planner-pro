@@ -5,6 +5,7 @@ from typing import List
 from datetime import datetime
 from ..utils.datetime_utils import DateTimeUtils
 from .TaskFileService import TaskFileService
+from .TaskHistService import TaskHistService
 
 
 class TaskPropertyService:
@@ -16,6 +17,7 @@ class TaskPropertyService:
     ) -> None:
         self.taskPropertyRepository = taskPropertyRepository
         self.taskFileService = TaskFileService(self.taskPropertyRepository.get_db())
+        self.taskHistService = TaskHistService(self.taskPropertyRepository.get_db())
 
     def create(self,
         task_id: int,
@@ -58,6 +60,8 @@ class TaskPropertyService:
             file_path = f'{storage_path}\{file.filename}'
             self.taskFileService.create(task_id, file.filename, file_path)
 
+        self.taskHistService.update_last_change_date(new_property.task_id, new_property.change_dt)
+
         return new_property
 
 
@@ -84,5 +88,9 @@ class TaskPropertyService:
 
         taskProperty.task_type = new_task_type
         taskProperty.change_dt = DateTimeUtils.local_wo_micr()
+
+        self.taskHistService.update_last_change_date(taskProperty.task.task_uid, taskProperty.change_dt)
         
         return self.taskPropertyRepository.update(taskProperty)
+
+#to do validation of cron_expression for create and update
