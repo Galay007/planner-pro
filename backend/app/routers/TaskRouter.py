@@ -49,12 +49,15 @@ def get_tasks(taskService: TaskService = Depends()):
 def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
     task = taskService.get_task_by_id(task_id)
     check_is_none(task, task_id)
-    
-    if data.get('control') == 'off' and task.in_running == TaskStatusEnum.ACTIVE:
-        task.status = TaskStatusEnum.NOT_ACTIVE
-        task.in_running = InRunningEnum.TO_CLEAN
-    elif data.get('control') == 'on' and task.in_running == TaskStatusEnum.NOT_ACTIVE:
-        task.status = TaskStatusEnum.ACTIVE
+
+    old_control = task.control
+    new_control = data.get('control')
+
+    if new_control == 'off' and old_control == 'on':
+        task.status = TaskStatusEnum.NOT_ACTIVE.value
+        task.in_running = InRunningEnum.TO_CLEAN.value
+    elif new_control == 'on' and old_control == 'off':
+        task.status = TaskStatusEnum.ACTIVE.value
 
     for key, value in data.items():
         if hasattr(task, key):

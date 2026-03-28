@@ -5,7 +5,6 @@ from cryptography.fernet import Fernet
 
 def get_env_filename():
     runtime_env = os.getenv("ENV")
-    print(f".env.{runtime_env}" if runtime_env else ".env")
     return f".env.{runtime_env}" if runtime_env else ".env"
 
 class Settings(BaseSettings):    

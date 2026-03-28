@@ -99,10 +99,9 @@ class TaskFileService:
         self.taskFileRepository.delete_by_id(task_id)
         
         server_folder = Path(f'{settings.uploads_dir}/{task_id}/{task_type.upper()}')
-        print(server_folder)
+
         if server_folder.exists():
             shutil.rmtree(server_folder)
-        server_folder.mkdir(exist_ok=True)
     
 
 

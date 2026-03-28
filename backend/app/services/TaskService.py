@@ -19,7 +19,7 @@ class TaskService:
     def create_task(self,
         task_id: int,
         task_name: str,
-        task_control: str,
+        control: str,
         owner: str,
         task_group: str | None,
         task_deps_id: int | None,
@@ -31,7 +31,7 @@ class TaskService:
         new_task = Task(
             task_id=task_id,
             task_name=task_name,
-            task_control=task_control,
+            control=control,
             owner=owner,
             task_group=task_group,
             task_deps_id=task_deps_id,
@@ -44,7 +44,7 @@ class TaskService:
         new_task.change_dt = dt_time
 
         self.taskRepository.create(new_task)
-        self.taskHistService.create(new_task.task_uid, new_task.task_id, dt_time)
+        self.taskHistService.create(new_task.task_uid, new_task.task_id, new_task.task_name, dt_time)
 
         return new_task
 
@@ -62,7 +62,7 @@ class TaskService:
 
     def update(self, task: Task) -> Task:
         task.change_dt = DateTimeUtils.local_wo_micr()
-        self.taskHistService.update_last_change_date(task.task_uid, task.change_dt)
+        self.taskHistService.update_change_date_from_task_service(task.task_uid, task.task_name, task.change_dt)
         return self.taskRepository.update(task)
 
     def delete(self,task: Task) -> int:
@@ -75,7 +75,7 @@ class TaskService:
             print (task_temp.task_id)
 
         dt_delete = DateTimeUtils.local_wo_micr()
-        self.taskHistService.update_deleted_date(task.task_uid, dt_delete)
+        self.taskHistService.update_deleted_date_from_task_service(task.task_uid, dt_delete)
 
     def check_control():
         pass

@@ -44,9 +44,7 @@ def get_orm_connection():
         db_session.commit()
     except Exception as e:
         print(f"🚨 DB ROLLBACK: {type(e).__name__}")
-        # print(f"{e.args[0] if e.args else e}")
         print({str(e).split('\n')[0]})
-        # print(f"DB ROLLBACK: {e}")
         db_session.rollback()
         raise
     finally:

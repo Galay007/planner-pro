@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload, selectinload
 
 from ..configs.Database import get_orm_connection
-from ..models.TaskPropertiesModel import TaskProperty
+from ..models.TaskPropertyModel import TaskProperty
 
 
 class TaskPropertyRepository:
@@ -15,12 +15,13 @@ class TaskPropertyRepository:
     ) -> None:
         self.db = db
 
-    def get(self, task_id: int) -> TaskProperty:      
+    def get_by_task_id(self, task_id: int) -> TaskProperty:      
         return self.db.scalar(
             select(TaskProperty)
             .where(TaskProperty.task_id == task_id)
             .options(
-                selectinload(TaskProperty.files).selectinload(TaskProperty.task)
+                selectinload(TaskProperty.files),
+                selectinload(TaskProperty.task)
             )
         )
 
@@ -36,7 +37,8 @@ class TaskPropertyRepository:
         return self.db.scalars(
             select(TaskProperty)
             .options(
-                selectinload(TaskProperty.files).selectinload(TaskProperty.task)
+                selectinload(TaskProperty.files),
+                selectinload(TaskProperty.task)
             )
         ).all()
     

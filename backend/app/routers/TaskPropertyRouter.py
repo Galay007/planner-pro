@@ -53,7 +53,7 @@ def get_tasks(taskPropertyService: TaskPropertyService = Depends()):
 
 @TaskPropertyRouter.get("/{task_id}")
 def get_task_by_id(task_id: int, taskPropertyService: TaskPropertyService = Depends()):
-    task_property = taskPropertyService.get_by_id(task_id)
+    task_property = taskPropertyService.get_by_task_id(task_id)
     check_is_none(task_property, task_id)
     
     return task_property
@@ -81,7 +81,7 @@ def update_task_property(
     if root_folder is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"Files for task property '{task_id}' are missing")
 
-    task_property = taskPropertyService.get_by_id(task_id)
+    task_property = taskPropertyService.get_by_task_id(task_id)
     check_is_none(task_property, task_id)
 
     if task_property.task_type != task_type and (files is None or len(files) == 0):

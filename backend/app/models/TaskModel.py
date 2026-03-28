@@ -1,18 +1,19 @@
 from typing import TYPE_CHECKING
 from sqlalchemy import (
-    Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, Enum
+    Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, Enum as SQLEnum
 )
+from ..utils.values_enum import ValuesEnum
 from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
-from enum import Enum
+from enum import Enum 
 
 if TYPE_CHECKING:
     from .TaskHistModel import TaskHist
-    from .TaskPropertiesModel import TaskProperty
+    from .TaskPropertyModel import TaskProperty
 
 class InRunningEnum(str, Enum):
     CLEARED = "cleared"
-    TO_CLEAN = "to_clean"
+    TO_CLEAN = "to clean"
     ADDED = "added"
 
 class TaskStatusEnum(str, Enum):
@@ -25,17 +26,19 @@ class Task(Base):
   
     task_uid = Column(BigInteger, primary_key=True, autoincrement=False)
     task_id = Column(BigInteger, unique=True, nullable=False)
-    task_name = Column(String, nullable=False),
+    task_name = Column(String, nullable=False)
     control = Column(String, nullable=False, default='off')
     owner = Column(String, nullable=False)
     task_group = Column(String, nullable=True)
     schedule = Column(String, nullable=True)
     task_deps_id = Column(BigInteger,ForeignKey('tasks.task_id', ondelete='SET NULL'),nullable=True)
-    status = Column(Enum(TaskStatusEnum), nullable=False, default=TaskStatusEnum.NOT_ACTIVE)
+    status = Column(ValuesEnum(TaskStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
+                    nullable=False, default=TaskStatusEnum.NOT_ACTIVE)
     notifications = Column(Boolean, nullable=False, default=False)
     log_text = Column(Text,nullable=True)
     comment = Column(Text,nullable=True) 
-    in_running = Column(Enum(InRunningEnum), nullable=False, default=InRunningEnum.CLEARED) 
+    in_running = Column(ValuesEnum(InRunningEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
+                        nullable=False, default=InRunningEnum.CLEARED) 
     change_dt = Column(DateTime(timezone=False), nullable=False )
 
     

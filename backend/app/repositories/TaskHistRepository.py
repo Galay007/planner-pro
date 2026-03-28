@@ -16,6 +16,9 @@ class TaskHistRepository:
     def get_by_id(self, id: int) -> TaskHist:      
         return self.db.query(TaskHist).filter(TaskHist.id == id).first()
     
+    def get_by_task_id(self, task_id: int) -> TaskHist:      
+        return self.db.query(TaskHist).filter(TaskHist.task_id == task_id).first()
+    
     def get_by_uid(self, task_uid: int) -> TaskHist:      
         return self.db.query(TaskHist).filter(TaskHist.task_uid == task_uid).first()
 
@@ -33,3 +36,6 @@ class TaskHistRepository:
         self.db.merge(taskHist)
         self.db.flush()
         return taskHist
+    
+    def get_db(self) -> Session:
+        return self.db

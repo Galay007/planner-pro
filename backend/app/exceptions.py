@@ -11,7 +11,7 @@ def register_db_exception_handlers(app: FastAPI):
 
     @app.exception_handler(SQLAlchemyError)
     async def general_exception_handler(request: Request, exc: Exception):
-        logger.error(f"SQLAlchemyError error: {exc}", exc_info=False)
+        logger.error(f"SQLAlchemyError error: {exc}", exc_info=True)
         
         if isinstance(exc, IntegrityError):
             status_code = status.HTTP_409_CONFLICT

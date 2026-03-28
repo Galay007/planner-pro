@@ -21,7 +21,7 @@ from .exceptions import register_db_exception_handlers
 # from sqlalchemy.orm import sessionmaker
 
 logging.basicConfig(
-    level=logging.WARNING,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
+    level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S"
 )

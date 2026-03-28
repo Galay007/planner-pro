@@ -1,6 +1,6 @@
 from fastapi import Depends, UploadFile, File
 from ..repositories.TaskPropertyRepository import TaskPropertyRepository
-from ..models.TaskPropertiesModel import TaskProperty
+from ..models.TaskPropertyModel import TaskProperty
 from typing import List
 from datetime import datetime
 from ..utils.datetime_utils import DateTimeUtils
@@ -11,6 +11,7 @@ from .TaskHistService import TaskHistService
 class TaskPropertyService:
     taskPropertyRepository: TaskPropertyRepository
     taskFileService: TaskFileService
+    taskHistService: TaskHistService
 
     def __init__(
         self, taskPropertyRepository: TaskPropertyRepository = Depends()
@@ -60,14 +61,15 @@ class TaskPropertyService:
             file_path = f'{storage_path}\{file.filename}'
             self.taskFileService.create(task_id, file.filename, file_path)
 
-        self.taskHistService.update_last_change_date(new_property.task_id, new_property.change_dt)
+        task_uid = self.taskHistService.get_by_task_id(new_property.task_id).task_uid
+        self.taskHistService.update_change_date_from_task_prop_service(task_uid, new_property.change_dt)
 
         return new_property
 
 
-    def get_by_id(self,task_id: int) -> TaskProperty | None:
+    def get_by_task_id(self,task_id: int) -> TaskProperty | None:
                  
-        return self.taskPropertyRepository.get(task_id)
+        return self.taskPropertyRepository.get_by_task_id(task_id)
     
     
     def get_all(self) -> List[TaskProperty]:
@@ -89,7 +91,7 @@ class TaskPropertyService:
         taskProperty.task_type = new_task_type
         taskProperty.change_dt = DateTimeUtils.local_wo_micr()
 
-        self.taskHistService.update_last_change_date(taskProperty.task.task_uid, taskProperty.change_dt)
+        self.taskHistService.update_change_date_from_task_prop_service(taskProperty.task.task_uid, taskProperty.change_dt)
         
         return self.taskPropertyRepository.update(taskProperty)
 

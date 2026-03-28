@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, lazyload, selectinload
 
 from ..configs.Database import get_orm_connection
 from ..models.TaskModel import Task
-from ..models.TaskPropertiesModel import TaskProperty
+from ..models.TaskPropertyModel import TaskProperty
 
 class TaskRepository:
     db: Session

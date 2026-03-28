@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, Mapped, relationship
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .TaskPropertiesModel import TaskProperty
+    from .TaskPropertyModel import TaskProperty
 
 class TaskFile(Base):
     __tablename__ = "task_files"
