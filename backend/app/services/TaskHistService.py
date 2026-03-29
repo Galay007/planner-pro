@@ -54,7 +54,7 @@ class TaskHistService:
         taskHist = self.get_by_uid(task_uid)
         taskHist.deleted_dt = delete_dt
         taskHist.change_dt = delete_dt
-        self.taskHistRepository.update(taskHist)
+        self.update(taskHist)
     
     def update_change_date_from_task_service(self, task_uid: int, task_name: str, change_dt: datetime):
         taskHist = self.get_by_uid(task_uid)

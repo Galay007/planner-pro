@@ -1,5 +1,4 @@
 from fastapi import HTTPException, APIRouter, Depends, status
-from ..schemas.TaskSchema import TaskCreate, TaskOut
 from ..services.TaskHistService import TaskHistService
 import logging
 from sqlalchemy.orm import Session, lazyload

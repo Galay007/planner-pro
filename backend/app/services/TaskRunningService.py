@@ -1,12 +1,9 @@
-from fastapi import Depends, HTTPException, status
 from ..repositories.TaskRunningRepository import TaskRunningRepository
 from ..models.TaskRunningModel import TaskRunning, RunningStatusEnum
-from ..models.TaskModel import Task, InRunningEnum
-from typing import List
+from ..models.TaskModel import Task, InRunningEnum, TaskStatusEnum
 from datetime import datetime
 from ..utils.datetime_utils import DateTimeUtils
 from ..repositories.TaskRepository import TaskRepository
-from datetime import date, time
 from cronsim import CronSim
 import logging
 from pathlib import Path
@@ -16,48 +13,82 @@ logger = logging.getLogger(__name__)
 
 class TaskRunningService:
     taskRunningRepository: TaskRunningRepository
+    taskRepository: TaskRepository
 
     def __init__(
         self, db: Session
     ) -> None:
         self.taskRunningRepository = TaskRunningRepository(db)
+        self.taskRepository = TaskRepository(db)
 
-    def create(self, taskRunning: TaskRunning):
+    def create_task_run(self, taskRunning: TaskRunning):
         self.taskRunningRepository.create(taskRunning)
 
-    def update_in_runningt_status(self, task: Task, new_status: InRunningEnum):
-        task.in_running = new_status.value
-        self.taskRunningRepository.update_task(task)
+    def update_in_running_status(self, task: Task, new_status: InRunningEnum):
+        if task.task_deps_id is None:
+            task.in_running = new_status.value
+        self.taskRepository.update_task(task)
 
-    def validate_tasks(self, current_dt: datetime) -> list[Task]:
-        tasks = self.taskRunningRepository.get_all_tasks()
-        validated_tasks_list = []
+    def update_task_status(self, task: Task, new_status: TaskStatusEnum):
+        task.status = new_status.value
+        task.control = "off"
+        self.taskRepository.update_task(task)
+
+    def has_parent(self, task_deps_id: int) -> bool:
+        task = self.taskRepository.get_task_by_task_id_short(task_deps_id)
+        return True if task else False
+
+    def validate_tasks_for_adding(self, current_dt: datetime) -> list[Task]:
+        tasks = self.taskRepository.get_all_tasks()
+        validated_tasks_for_adding = []
 
         for task in tasks:
-            if task.control == "on":
-                valid_dates = True if task.task_props.from_dt <= current_dt and task.task_props.until_dt else False
-                valid_cron = self.is_cron_valid(task.task_props.cron_expression, task.task_id)
-                valid_for_running = True if task.in_running == InRunningEnum.CLEARED else False
-                valid_task_deps = True if task.task_deps_id is None else False
-                valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
+            if task.task_props is None: 
+                logger.warning(f'Task id {task.task_id} has no properties to be "ON"')
+                self.update_task_status(task, TaskStatusEnum.NOT_ACTIVE)
+                continue
 
-                if not valid_dates or not valid_cron or not valid_for_running \
-                    or not valid_task_deps or not valid_storage_path:
+            valid_dates = True if task.task_props.from_dt <= current_dt and task.task_props.until_dt >= current_dt else False
+            valid_cron = self.is_cron_valid(task.task_props.cron_expression, task.task_id)
+            valid_for_running = True if task.in_running == InRunningEnum.CLEARED else False
+            valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
+            valid_in_future = True if task.task_props.until_dt >= current_dt else False
 
-                    logger.warning(f'Task id {task.task_id} has been "ON" but not valid for running task')
+            if task.control == "on" and task.task_deps_id is None and task.in_running != InRunningEnum.ADDED:
+                if  valid_dates and valid_cron and valid_for_running and valid_storage_path:
+                    validated_tasks_for_adding.append(task)                  
+                elif valid_in_future and valid_cron and valid_for_running and valid_storage_path:
+                    pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
+                else:
+                    logger.warning(f'Task id {task.task_id} can not be "ON" due to invalid params for running')
+                    self.update_task_status(task, TaskStatusEnum.NOT_ACTIVE)
                     continue
-                elif valid_dates and valid_cron and valid_for_running and valid_task_deps and valid_storage_path:
-                    validated_tasks_list.append(task)
+            if task.control == "on" and task.task_deps_id is not None:
+                valid_parent = True if self.has_parent(task.task_deps_id) else False
+                if not valid_parent or not valid_in_future or valid_cron or not valid_storage_path: # если valid_cron == True, то это ошибка для depended tast
+                    logger.warning(f'Depended task id {task.task_id} can not be "ON" due to invalid params')
+                    self.update_task_status(task, TaskStatusEnum.NOT_ACTIVE)
+                    continue
         
-        return validated_tasks_list
-            
+        return validated_tasks_for_adding
+
+    def run_cleaning(self, current_dt: datetime) -> None:
+        tasks = self.taskRepository.get_all_tasks()
+
+        for task in tasks:
+            if task.control == "off" and task.in_running == InRunningEnum.TO_CLEAN:
+                self.taskRunningRepository.delete_by_task_id(task.task_id, current_dt)
+                self.update_in_running_status(task, InRunningEnum.CLEARED)
+                logger.info(f'Unrunnings of task id {task.task_id} were cleaned for {current_dt.date()} due to turn off')
+
+
     def refresh_runnings(self):
         current_dt = datetime.now()
 
-        valid_tasks_list = self.validate_tasks(current_dt)
+        self.run_cleaning(current_dt)
+        valid_tasks_list = self.validate_tasks_for_adding(current_dt)
 
         if len(valid_tasks_list) == 0:
-            logger.info(f'No tasks for running')
             return
 
         for task in valid_tasks_list:
@@ -84,17 +115,14 @@ class TaskRunningService:
                 for row_execute in today_executions:
                     new_run = TaskRunning(**base_fields)
                     new_run.schedule_dt = row_execute
-                    self.create(new_run)
+                    self.create_task_run(new_run)
                 
                 isRunningsSaved = True
             
             if isRunningsSaved:
-                self.update_in_runningt_status(task, InRunningEnum.ADDED)
+                self.update_in_running_status(task, InRunningEnum.ADDED)
+                logger.info(f'Task id {task.task_id} was added for runnings')
                 
-
-
-    def get_uid(self, task_id: int) -> int:
-        return self.taskHistService.get_by_id(task_id).task_uid
     
     def is_cron_valid(self, expr: str, task_id: int) -> bool:
         try:

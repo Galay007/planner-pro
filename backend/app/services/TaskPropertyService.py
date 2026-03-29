@@ -1,5 +1,5 @@
 from fastapi import Depends, UploadFile, File
-from ..repositories.TaskPropertyRepository import TaskPropertyRepository
+from ..repositories.TaskPropertyRepositoryAPI import TaskPropertyRepositoryAPI
 from ..models.TaskPropertyModel import TaskProperty
 from typing import List
 from datetime import datetime
@@ -9,12 +9,12 @@ from .TaskHistService import TaskHistService
 
 
 class TaskPropertyService:
-    taskPropertyRepository: TaskPropertyRepository
+    taskPropertyRepository: TaskPropertyRepositoryAPI
     taskFileService: TaskFileService
     taskHistService: TaskHistService
 
     def __init__(
-        self, taskPropertyRepository: TaskPropertyRepository = Depends()
+        self, taskPropertyRepository: TaskPropertyRepositoryAPI = Depends()
     ) -> None:
         self.taskPropertyRepository = taskPropertyRepository
         self.taskFileService = TaskFileService(self.taskPropertyRepository.get_db())

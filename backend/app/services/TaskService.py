@@ -1,5 +1,5 @@
 from fastapi import Depends
-from ..repositories.TaskRepository import TaskRepository
+from ..repositories.TaskRepositoryAPI import TaskRepositoryAPI
 from ..models.TaskModel import Task
 from ..utils.datetime_utils import DateTimeUtils
 from typing import List
@@ -7,11 +7,11 @@ from .TaskHistService import TaskHistService
 
 
 class TaskService:
-    taskRepository: TaskRepository
+    taskRepository: TaskRepositoryAPI
     taskHistService: TaskHistService
 
     def __init__(
-        self, taskRepository: TaskRepository = Depends()
+        self, taskRepository: TaskRepositoryAPI = Depends()
     ) -> None:
         self.taskRepository = taskRepository
         self.taskHistService = TaskHistService(self.taskRepository.get_db())
@@ -19,7 +19,6 @@ class TaskService:
     def create_task(self,
         task_id: int,
         task_name: str,
-        control: str,
         owner: str,
         task_group: str | None,
         task_deps_id: int | None,
@@ -31,7 +30,6 @@ class TaskService:
         new_task = Task(
             task_id=task_id,
             task_name=task_name,
-            control=control,
             owner=owner,
             task_group=task_group,
             task_deps_id=task_deps_id,
@@ -68,11 +66,6 @@ class TaskService:
     def delete(self,task: Task) -> int:
         # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
-
-        
-        task_temp = self.get_task_by_id(task.task_id)
-        if task_temp:
-            print (task_temp.task_id)
 
         dt_delete = DateTimeUtils.local_wo_micr()
         self.taskHistService.update_deleted_date_from_task_service(task.task_uid, dt_delete)

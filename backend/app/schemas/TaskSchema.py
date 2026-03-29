@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 class TaskCreate(BaseModel):
     task_id: int
     task_name: str
-    control: str
     owner: str
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None

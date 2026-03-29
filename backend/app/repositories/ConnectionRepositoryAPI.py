@@ -7,7 +7,7 @@ from ..configs.Database import get_orm_connection
 from ..models.ConnectionModel import Connection
 
 
-class ConnectionRepository:
+class ConnectionRepositoryAPI:
     db: Session
 
     def __init__(

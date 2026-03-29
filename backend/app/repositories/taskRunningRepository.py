@@ -1,11 +1,9 @@
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload, selectinload
 from ..models.TaskRunningModel import TaskRunning
-from ..models.TaskModel import Task
-from ..models.TaskPropertyModel import TaskProperty
-
+from datetime import datetime, timedelta
 
 class TaskRunningRepository:
     db: Session
@@ -28,21 +26,14 @@ class TaskRunningRepository:
     def get_db(self) -> Session:
         return self.db
     
-    def get_all_tasks(self) -> List[Task]:
-        return self.db.scalars(
-            select(Task)
-            .options(
-                selectinload(Task.task_props).selectinload(TaskProperty.files)
+    def delete_by_task_id(self, task_id: int, current_dt: datetime) -> None:
+        query = (
+                delete(TaskRunning)
+                .where(TaskRunning.task_id == task_id)
+                .where(TaskRunning.schedule_dt >= current_dt.date())
+                .where(TaskRunning.schedule_dt < (current_dt.date() + timedelta(days=1)))
+                .where(TaskRunning.started_dt.is_(None))
             )
-        ).all()
+        self.db.execute(query)
     
-    def get_task_by_task_id_short(self, task_id: int) -> Task:           
-        return self.db.scalar(
-            select(Task)
-            .where(Task.task_id==task_id)
-        )
     
-    def update_task(self, task: Task) -> Task:
-        self.db.merge(task)
-        self.db.flush()
-        return task

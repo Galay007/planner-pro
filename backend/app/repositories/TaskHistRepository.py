@@ -13,6 +13,11 @@ class TaskHistRepository:
     ) -> None:
         self.db = db
 
+    def create(self, taskHist: TaskHist) -> TaskHist:
+        self.db.add(taskHist)   
+        self.db.flush()
+        return taskHist
+
     def get_by_id(self, id: int) -> TaskHist:      
         return self.db.query(TaskHist).filter(TaskHist.id == id).first()
     
@@ -26,11 +31,6 @@ class TaskHistRepository:
         return self.db.scalars(
             select(TaskHist)
             ).all()
-    
-    def create(self, taskHist: TaskHist) -> TaskHist:
-        self.db.add(taskHist)   
-        self.db.flush()
-        return taskHist
 
     def update(self, taskHist: TaskHist) -> TaskHist:
         self.db.merge(taskHist)

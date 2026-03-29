@@ -43,7 +43,7 @@ class Task(Base):
 
     
 
-    task_props: Mapped["TaskProperty"] = relationship(back_populates="task", lazy="select", passive_deletes=True )
+    task_props: Mapped["TaskProperty"] = relationship(back_populates="task", cascade="all, delete-orphan", lazy="select", passive_deletes=True )
 
     def return_id_uid(self):
             return {

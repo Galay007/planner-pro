@@ -7,7 +7,7 @@ from ..configs.Database import get_orm_connection
 from ..models.TaskPropertyModel import TaskProperty
 
 
-class TaskPropertyRepository:
+class TaskPropertyRepositoryAPI:
     db: Session
 
     def __init__(
@@ -29,9 +29,6 @@ class TaskPropertyRepository:
         self.db.add(taskProperty)
         self.db.flush()
         return taskProperty
-
-    def delete(self, taskProperty: TaskProperty) -> None:
-        self.db.delete(taskProperty)
 
     def get_all(self) -> List[TaskProperty]:
         return self.db.scalars(

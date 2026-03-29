@@ -5,7 +5,10 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from .Config import settings
 from sqlalchemy import text
 import time
+import sys
+import logging
 
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -43,8 +46,8 @@ def get_orm_connection():
         yield db_session
         db_session.commit()
     except Exception as e:
-        print(f"🚨 DB ROLLBACK: {type(e).__name__}")
-        print({str(e).split('\n')[0]})
+        logging.error(f"🚨 DB ROLLBACK: {type(e).__name__}")
+        # print({str(e).split('\n')[0]})
         db_session.rollback()
         raise
     finally:
@@ -58,10 +61,9 @@ def init_metadata_db():
             Base.metadata.create_all(bind=engine)
             for table in Base.metadata.sorted_tables:
                 print(f"  - {table.name}")
-
-            print("Таблицы созданы")
+            print("Таблицы в БД найдены")
         except Exception as e:
-            print(f"Ошибка создания таблиц: {e}")
+            logging.error(f"Ошибка создания таблиц: {e}")
     
 def check_db_connection(max_retries=3, delay=2):
 
@@ -70,13 +72,12 @@ def check_db_connection(max_retries=3, delay=2):
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            print("БД доступна")
             return True
         except Exception as e:
             print(f"Попытка {attempt+1}/{max_retries}: {e}")
             if attempt < max_retries - 1:
                 time.sleep(delay)
-    print("БД недоступна")
+    logging.error("БД недоступна")
     return False
 
 #     /*CREATE TABLE connections (

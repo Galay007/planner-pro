@@ -1,15 +1,15 @@
 from fastapi import Depends
-from ..repositories.ConnectionRepository import ConnectionRepository
+from ..repositories.ConnectionRepositoryAPI import ConnectionRepositoryAPI
 from ..models.ConnectionModel import Connection
 from typing import List
 
 class ConnectionService:
-    connectionRepository: ConnectionRepository
+    connectionRepositoryAPI: ConnectionRepositoryAPI
 
     def __init__(
-        self, connectionRepository: ConnectionRepository = Depends()
+        self, connectionRepositoryAPI: ConnectionRepositoryAPI = Depends()
     ) -> None:
-        self.connectionRepository = connectionRepository
+        self.connectionRepositoryAPI = connectionRepositoryAPI
 
     def create(self,
         name: str,
@@ -33,15 +33,15 @@ class ConnectionService:
         )
         new_connection.password = password  # setter сам зашифрует пароль
 
-        return self.connectionRepository.create(new_connection)
+        return self.connectionRepositoryAPI.create(new_connection)
 
 
     def get_by_name(self,name: str) -> Connection | None:
                  
-        return self.connectionRepository.get(name)
+        return self.connectionRepositoryAPI.get(name)
     
     def delete(self,connection: Connection) -> None:
-        return self.connectionRepository.delete(connection)
+        return self.connectionRepositoryAPI.delete(connection)
     
     def get_all(self) -> List[Connection]:
-        return self.connectionRepository.get_all()
+        return self.connectionRepositoryAPI.get_all()

@@ -16,7 +16,6 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
     new_task = taskService.create_task(
         task_id=payload.task_id,
         task_name=payload.task_name,
-        control=payload.control,
         owner=payload.owner,
         task_group=payload.task_group,
         task_deps_id=payload.task_deps_id,
@@ -32,6 +31,7 @@ def delete(task_id: int, taskService: TaskService = Depends()):
     check_is_none(task, task_id)
     taskService.delete(task)
 
+    #to do добавить логи childs что parent был удален
     return task.return_id_uid()
 
 @TaskRouter.get("/{task_id}")
@@ -55,9 +55,11 @@ def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
 
     if new_control == 'off' and old_control == 'on':
         task.status = TaskStatusEnum.NOT_ACTIVE.value
-        task.in_running = InRunningEnum.TO_CLEAN.value
+        if task.task_deps_id is None:
+            task.in_running = InRunningEnum.TO_CLEAN.value
     elif new_control == 'on' and old_control == 'off':
         task.status = TaskStatusEnum.ACTIVE.value
+        #To do check that task is not running for update
 
     for key, value in data.items():
         if hasattr(task, key):

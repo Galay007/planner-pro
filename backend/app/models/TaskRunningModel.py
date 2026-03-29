@@ -16,7 +16,7 @@ class TaskRunning(Base):
     __tablename__ = 'task_runnings'
     
     id = Column(BigInteger, primary_key=True)
-    task_uid = Column(BigInteger, nullable=False)
+    task_uid = Column(BigInteger, ForeignKey('tasks.task_uid', ondelete="CASCADE"), info={'passive_deletes': True}, nullable=False)
     task_id = Column(BigInteger, nullable=False)
     parent_uid = Column(BigInteger, nullable=True)
     parent_id = Column(BigInteger, nullable=True)
@@ -28,6 +28,7 @@ class TaskRunning(Base):
     created_dt = Column(DateTime(timezone=False), nullable=False)
     started_dt = Column(DateTime(timezone=False), nullable=True)
     finished_dt = Column(DateTime(timezone=False), nullable=True)
+    worker_id = Column(Integer, nullable=True)
     status = Column(SQLEnum(RunningStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                     nullable=False, default=RunningStatusEnum.PENDING )
 
