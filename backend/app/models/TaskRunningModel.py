@@ -11,6 +11,11 @@ class RunningStatusEnum(str, Enum):
     ERROR = "error"
     PENDING = "pending"
 
+class TriggerModeEnum(str, Enum):
+    SCHEDULED = "scheduled"
+    MANUAL = "manual"
+    DEPENDED = "depended"
+
 
 class TaskRunning(Base):
     __tablename__ = 'task_runnings'
@@ -20,15 +25,18 @@ class TaskRunning(Base):
     task_id = Column(BigInteger, nullable=False)
     parent_uid = Column(BigInteger, nullable=True)
     parent_id = Column(BigInteger, nullable=True)
+    trigger_mode = Column(SQLEnum(TriggerModeEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     schedule_dt = Column(DateTime(timezone=False), nullable=False)
     notifications = Column(Boolean, nullable=False)  
     email = Column(String, nullable=True)
     tg_chat_id = Column(String, nullable=True)
     storage_path = Column(String, nullable=False)
     created_dt = Column(DateTime(timezone=False), nullable=False)
+    worker_id = Column(Integer, nullable=True)
     started_dt = Column(DateTime(timezone=False), nullable=True)
     finished_dt = Column(DateTime(timezone=False), nullable=True)
-    worker_id = Column(Integer, nullable=True)
+    attempt_count = Column(Integer, nullable=True)
+    next_retry_at = Column(DateTime(timezone=False), nullable=True)
     status = Column(SQLEnum(RunningStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                     nullable=False, default=RunningStatusEnum.PENDING )
 

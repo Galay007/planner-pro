@@ -1,5 +1,5 @@
 from ..repositories.TaskRunningRepository import TaskRunningRepository
-from ..models.TaskRunningModel import TaskRunning, RunningStatusEnum
+from ..models.TaskRunningModel import TaskRunning, RunningStatusEnum, TriggerModeEnum
 from ..models.TaskModel import Task, InRunningEnum, TaskStatusEnum
 from datetime import datetime
 from ..utils.datetime_utils import DateTimeUtils
@@ -38,7 +38,7 @@ class TaskRunningService:
         task = self.taskRepository.get_task_by_task_id_short(task_deps_id)
         return True if task else False
 
-    def validate_tasks_for_adding(self, current_dt: datetime) -> list[Task]:
+    def validate_cheduled_tasks_for_adding(self, current_dt: datetime) -> list[Task]:
         tasks = self.taskRepository.get_all_tasks()
         validated_tasks_for_adding = []
 
@@ -72,7 +72,7 @@ class TaskRunningService:
         
         return validated_tasks_for_adding
 
-    def run_cleaning(self, current_dt: datetime) -> None:
+    def clean_scheduled_tasks(self, current_dt: datetime) -> None:
         tasks = self.taskRepository.get_all_tasks()
 
         for task in tasks:
@@ -85,8 +85,8 @@ class TaskRunningService:
     def refresh_runnings(self):
         current_dt = datetime.now()
 
-        self.run_cleaning(current_dt)
-        valid_tasks_list = self.validate_tasks_for_adding(current_dt)
+        self.clean_scheduled_tasks(current_dt)
+        valid_tasks_list = self.validate_cheduled_tasks_for_adding(current_dt)
 
         if len(valid_tasks_list) == 0:
             return
@@ -95,15 +95,16 @@ class TaskRunningService:
             isRunningsSaved = False
 
             base_fields  = dict(
-                task_uid=task.task_uid,
-                task_id=task.task_id,
-                parent_id=task.task_deps_id,
-                notifications=task.notifications,
-                email=task.task_props.email,
-                tg_chat_id=task.task_props.tg_chat_id,
-                storage_path=task.task_props.storage_path,
-                created_dt=DateTimeUtils.local_wo_micr(),
-                status=RunningStatusEnum.PENDING.value
+                task_uid = task.task_uid,
+                task_id = task.task_id,
+                parent_id = task.task_deps_id,
+                trigger_mode = TriggerModeEnum.SCHEDULED.value,
+                notifications = task.notifications,
+                email = task.task_props.email,
+                tg_chat_id = task.task_props.tg_chat_id,
+                storage_path = task.task_props.storage_path,
+                created_dt = DateTimeUtils.local_wo_micr(),
+                status = RunningStatusEnum.PENDING.value
             )
 
             cron_expr = task.task_props.cron_expression
