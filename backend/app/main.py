@@ -13,7 +13,7 @@ from .models.TaskLogModel import TaskLog
 from .configs.Config import settings
 from .configs.Database import init_metadata_db
 from .exceptions import register_db_exception_handlers
-
+from contextlib import asynccontextmanager
 
 # from sqlalchemy.ext.asyncio import AsyncSession, create_engine  # для ассинхронных запросов
 # from sqlalchemy.ext.declarative import declarative_base
@@ -24,16 +24,33 @@ from .exceptions import register_db_exception_handlers
 #     run_migrations()
 #     yield
 
+is_shutting_down = False
+
 logging.basicConfig(
     level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S"
 )
 
-init_metadata_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🚀 Starting up application...")
 
-app = FastAPI(title=settings.app_name)
-register_db_exception_handlers(app)
+    init_metadata_db()
+    
+    register_db_exception_handlers(app)
+    
+    print("✅ Application started")
+    
+    yield 
+
+    global is_shutting_down
+    is_shutting_down = True
+
+    print("🛑 Shutting down application...")  
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.include_router(ConnectionRouter)
 app.include_router(TaskRouter)
@@ -55,6 +72,8 @@ app.add_middleware(
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    if is_shutting_down:
+        return {"status": "shutting_down"}  # Для балансировщика нагрузки
     return {"status": "ok"}
 
 

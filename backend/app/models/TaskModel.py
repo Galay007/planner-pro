@@ -38,7 +38,8 @@ class Task(Base):
     log_text = Column(Text,nullable=True)
     comment = Column(Text,nullable=True) 
     in_running = Column(ValuesEnum(InRunningEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
-                        nullable=False, default=InRunningEnum.CLEARED) 
+                        nullable=False, default=InRunningEnum.CLEARED)
+    added_running_dt = Column(DateTime(timezone=False), nullable=True )
     change_dt = Column(DateTime(timezone=False), nullable=False )
 
     

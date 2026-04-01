@@ -79,20 +79,3 @@ def check_db_connection(max_retries=3, delay=2):
                 time.sleep(delay)
     logging.error("БД недоступна")
     return False
-
-#     /*CREATE TABLE connections (
-#     id SERIAL PRIMARY KEY,
-#     name VARCHAR(100) NOT NULL,
-#     conn_type VARCHAR(50) NOT NULL,
-#     host VARCHAR(255) NOT NULL,
-#     port INT4,
-#     db_name VARCHAR(255),
-#     login VARCHAR(100),
-#     password VARCHAR(255),
-#     dp_path TEXT NULL,
-#     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-#     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-# );*/
-
-
-# --CREATE INDEX IF NOT EXISTS idx_task_properties_task_id ON task_properties(task_id);

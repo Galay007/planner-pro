@@ -19,9 +19,10 @@ DATABASE_URL = os.getenv(
     "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres",
 )
 
-CHANNEL_NAME = "new_task"
+
 MAX_WORKERS = 5
-FALLBACK_WAKEUP_SEC = 30
+WAKE_UP_INTERVAL_SEC = 30
+FROZEN_TASK_INTERVAL_SEC = 120
 LISTEN_TIMEOUT_SEC = 5
 DISPATCHER_WAIT_SEC = 1
 
@@ -47,28 +48,18 @@ SessionLocal = sessionmaker(
     future=True,
 )
 
-# ==========================================
-# SHARED STATE
-# ==========================================
 
 shutdown_event = threading.Event()
 wake_up_workers = threading.Event()
 
-active_workers = 0
+available_tasks = 0
+current_workers = 0
 active_workers_lock = threading.Lock()
 
 
-# ==========================================
-# TASK SQL
-# Подстрой под свою таблицу tasks / task_properties
-# ==========================================
 
 def claim_one_task(session):
-    """
-    Атомарно забирает одну задачу.
-    Здесь использована абстрактная таблица tasks.
-    Подстрой SQL под свою реальную модель.
-    """
+
     sql = text("""
         WITH cte AS (
             SELECT id
@@ -87,8 +78,12 @@ def claim_one_task(session):
         RETURNING t.id, t.payload;
     """)
 
-    row = session.execute(sql).mappings().first()
-    return row
+    try:
+        row = session.execute(sql).mappings().first()
+        return row
+    except Exception as e:
+        logger.error(f"Database error while claiming task: {e}", exc_info=True)
+        return None
 
 
 def mark_task_done(session, task_id: int):
@@ -118,16 +113,12 @@ def mark_task_retry(session, task_id: int, error_text: str):
     )
 
 
-# ==========================================
-# BUSINESS LOGIC
-# ==========================================
-
-def process_task(task_row: dict):
+def process_task(session, task):
     """
     Здесь твоя реальная логика.
     Пока просто пример.
     """
-    task_id = task_row["id"]
+    task_id = task["task_id"]
     logger.info("Processing task id=%s", task_id)
 
     # здесь может быть твой I/O:
@@ -139,147 +130,102 @@ def process_task(task_row: dict):
     logger.info("Finished task id=%s", task_id)
 
 
-# ==========================================
-# WORKER
-# ==========================================
-
 def worker_job():
-    global active_workers
+    global current_workers
+    global available_tasks
 
     with active_workers_lock:
-        active_workers += 1
+        current_workers += 1
 
     try:
-        # 1. claim task
         with SessionLocal.begin() as session:
             task = claim_one_task(session)
 
-        if not task:
-            logger.info("No tasks available")
-            return
+            if not task:
+                logger.info(f"Worker_id {current_workers} - no tasks available")
+                return
 
-        try:
-            # 2. process
-            process_task(task)
+            try:
+                process_task(session, task)
+                mark_task_done(session, task)
 
-            # 3. mark done
-            with SessionLocal.begin() as session:
-                mark_task_done(session, task["id"])
+            except Exception as exc:
+                logger.exception(f"Worker_id {current_workers} - task id {task["task_id"]} failed")
 
-        except Exception as exc:
-            logger.exception("Task failed id=%s", task["id"])
+                with SessionLocal.begin() as session:
+                    mark_task_retry(session, task["id"], str(exc))
 
-            with SessionLocal.begin() as session:
-                mark_task_retry(session, task["id"], str(exc))
-
+        with active_workers_lock:
+            if available_tasks > 0:
+                available_tasks -= 1
     finally:
         with active_workers_lock:
-            active_workers -= 1
+            current_workers -= 1
+            
 
-
-# ==========================================
-# DISPATCHER
-# ==========================================
+def update_available_tasks():
+    pass
 
 def dispatch_loop(executor: ThreadPoolExecutor):
     logger.info("Dispatcher started")
 
     while not shutdown_event.is_set():
-        fired = wake_up_workers.wait(timeout=DISPATCHER_WAIT_SEC)
-        if not fired:
+        has_work = wake_up_workers.wait(timeout=DISPATCHER_WAIT_SEC)
+        if not has_work:
             continue
 
         wake_up_workers.clear()
 
-        while not shutdown_event.is_set():
-            with active_workers_lock:
-                free_slots = MAX_WORKERS - active_workers
-
-            if free_slots <= 0:
-                logger.info("No free worker slots")
-                break
-
-            logger.info("Submitting %s worker(s)", free_slots)
-
-            for _ in range(free_slots):
-                executor.submit(worker_job)
-
-            # Даём воркерам время забрать задачи
-            time.sleep(0.3)
-
-            # Один проход за wakeup обычно достаточно.
-            # Если задач много, следующий wakeup придёт либо от poll, либо от notify.
+        if shutdown_event.is_set():
             break
+        
+        update_available_tasks()
+
+        with active_workers_lock:
+            free_workers = MAX_WORKERS - current_workers
+
+        if free_workers <= 0:
+            logger.info("No free worker")
+            break
+
+        logger.info("Submitting %s worker(s)", free_workers)
+
+        for _ in range(free_workers):
+            executor.submit(worker_job)
+
+        time.sleep(0.3)
+
 
     logger.info("Dispatcher stopped")
 
-
-# ==========================================
-# LISTENER IN MAIN THREAD
-# ==========================================
-
-def listen_loop():
-    """
-    Listener работает в main thread.
-
-    Важно:
-    - создаём raw_connection через SQLAlchemy engine
-    - LISTEN регистрируем SQL-командой
-    - ждём уведомления через select.select(...)
-    - fallback: раз в 30 секунд поднимаем wake_up_workers
-    """
-
-    logger.info("Listener started in main thread, channel=%s", CHANNEL_NAME)
-
-    raw_conn = engine.raw_connection()
-
-    try:
-        # для LISTEN/NOTIFY нужен autocommit
-        raw_conn.autocommit = True
-
-        cursor = raw_conn.cursor()
-        cursor.execute(f"LISTEN {CHANNEL_NAME};")
-
-        last_fallback = time.monotonic()
-
-        while not shutdown_event.is_set():
-            ready = select.select([raw_conn], [], [], LISTEN_TIMEOUT_SEC)
-
-            if ready == ([], [], []):
-                now = time.monotonic()
-                if now - last_fallback >= FALLBACK_WAKEUP_SEC:
-                    logger.info("Fallback wakeup")
-                    wake_up_workers.set()
-                    last_fallback = now
-                continue
-
-            # читаем уведомления у DBAPI connection
-            raw_conn.poll()
-
-            notifies = getattr(raw_conn, "notifies", [])
-            while notifies:
-                notify = notifies.pop(0)
-                logger.info("Got NOTIFY: %s", getattr(notify, "payload", None))
-                wake_up_workers.set()
-
-            now = time.monotonic()
-            if now - last_fallback >= FALLBACK_WAKEUP_SEC:
-                logger.info("Fallback wakeup after notify")
-                wake_up_workers.set()
-                last_fallback = now
-
-    finally:
-        with suppress(Exception):
-            cursor.close()
-        with suppress(Exception):
-            raw_conn.close()
-
-        logger.info("Listener stopped")
+def clear_status_for_frozen_task():
+    pass
 
 
-# ==========================================
-# SIGNALS
-# ==========================================
+def interval_loop():
+
+    logger.info(f"Interval loop started with every {WAKE_UP_INTERVAL_SEC} sec")
+
+    last_fallback = time.monotonic()
+
+    while not shutdown_event.is_set():
+
+        now = time.monotonic()
+        if now - last_fallback >= WAKE_UP_INTERVAL_SEC:
+            logger.info("Wake-up from interval time")
+            wake_up_workers.set()
+            last_fallback = now
+
+        if available_tasks > 0:
+            wake_up_workers.set()
+        
+        if now - last_fallback >= FROZEN_TASK_INTERVAL_SEC:
+            logger.info("Run script for clear status of frozen task")
+            clear_status_for_frozen_task()
+
+
+        
+
 
 def handle_signal(signum, frame):
     logger.info("Received signal %s, shutting down...", signum)
@@ -287,15 +233,11 @@ def handle_signal(signum, frame):
     wake_up_workers.set()
 
 
-# ==========================================
-# MAIN
-# ==========================================
-
 def main():
-    signal.signal(signal.SIGINT, handle_signal)
-    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal) # сигнал прерывания (нажатие Ctrl+C в терминале)
+    signal.signal(signal.SIGTERM, handle_signal) # сигнал завершения (например, от kill <pid> или оркестратора docker/k8
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="task-worker") as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="schedule-worker") as executor:
         dispatcher_thread = threading.Thread(
             target=dispatch_loop,
             args=(executor,),
@@ -308,8 +250,7 @@ def main():
         logger.info("Threads: main(listener) + dispatcher + up to %s workers", MAX_WORKERS)
 
         try:
-            # main thread = listener
-            listen_loop()
+            interval_loop()
         finally:
             shutdown_event.set()
             wake_up_workers.set()
