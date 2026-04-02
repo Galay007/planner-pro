@@ -1,4 +1,10 @@
 from .workers.schedule_worker import main
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass 
+    finally:
+        import sys
+        sys.exit(0) 

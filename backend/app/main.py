@@ -34,8 +34,6 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Starting up application...")
-
     init_metadata_db()
     
     register_db_exception_handlers(app)

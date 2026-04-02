@@ -24,7 +24,7 @@ class Connection(Base):
     login = Column(String(255), nullable=True)
     pass_str = Column(Text, nullable=True)    
     db_path = Column(Text,nullable=True)    
-    created_at = Column(DateTime(timezone=False),default=DateTimeUtils.local_wo_micr)   
+    created_at = Column(DateTime(timezone=False),default=DateTimeUtils.local_wo_microsec)   
 
 
     @property

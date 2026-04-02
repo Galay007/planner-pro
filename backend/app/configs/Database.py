@@ -24,9 +24,9 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(
+    bind=engine,
     autocommit=False, 
-    autoflush=False, 
-    bind=engine
+    autoflush=False 
 )
 # db_session = scoped_session(SessionLocal)
 

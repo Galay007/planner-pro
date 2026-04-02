@@ -27,7 +27,7 @@ class TaskFileService:
             task_id=task_id,
             file_name=file_name,
             file_path=file_path,
-            change_dt=DateTimeUtils.local_wo_micr()
+            change_dt=DateTimeUtils.local_wo_microsec()
         )
 
         self.taskFileRepository.create(new_task_file)
@@ -50,7 +50,7 @@ class TaskFileService:
             task_id=task_id,
             file_name=file_name,
             file_path=file_path,
-            change_dt=DateTimeUtils.local_wo_micr()
+            change_dt=DateTimeUtils.local_wo_microsec()
         )
 
         return self.taskFileRepository.update(upd_task_file)

@@ -50,7 +50,7 @@ class TaskPropertyService:
             storage_path=storage_path,
             email=email,
             tg_chat_id=tg_chat_id,
-            change_dt=DateTimeUtils.local_wo_micr()
+            change_dt=DateTimeUtils.local_wo_microsec()
         )
 
         self.taskPropertyRepository.create(new_property)
@@ -89,7 +89,7 @@ class TaskPropertyService:
             taskProperty.storage_path = root_path
 
         taskProperty.task_type = new_task_type
-        taskProperty.change_dt = DateTimeUtils.local_wo_micr()
+        taskProperty.change_dt = DateTimeUtils.local_wo_microsec()
 
         self.taskHistService.update_change_date_from_task_prop_service(taskProperty.task.task_uid, taskProperty.change_dt)
         

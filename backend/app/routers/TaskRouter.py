@@ -59,7 +59,6 @@ def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
             task.in_running = InRunningEnum.TO_CLEAN.value
     elif new_control == 'on' and old_control == 'off':
         task.status = TaskStatusEnum.ACTIVE.value
-        #To do check that task is not running for update
 
     for key, value in data.items():
         if hasattr(task, key):
@@ -71,6 +70,10 @@ def check_is_none(object, param):
     if object is None:
         logger.warning(f"Task '{param}' not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task '{param}' not found")
+    
+    if object.status == TaskStatusEnum.RUNNING:
+        logger.warning(f"Task id '{object.task_id}' is running can not be updated")
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task id '{object.task_id}' is running can not be updated")
 
 
 

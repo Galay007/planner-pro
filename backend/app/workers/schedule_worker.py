@@ -6,38 +6,28 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
+from ..configs.Config import settings
+from datetime import datetime, date
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-# ==========================================
-# CONFIG
-# ==========================================
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/postgres",
-)
-
-
 MAX_WORKERS = 5
-WAKE_UP_INTERVAL_SEC = 30
-FROZEN_TASK_INTERVAL_SEC = 120
+MAX_ATTEMPTS = 3
+WAKE_UP_INTERVAL_SEC = 10
+FROZEN_TASK_INTERVAL_SEC = 80
 LISTEN_TIMEOUT_SEC = 5
 DISPATCHER_WAIT_SEC = 1
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s | %(levelname)s | %(threadName)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-# ==========================================
-# SQLAlchemy
-# ==========================================
 
 engine = create_engine(
-    DATABASE_URL,
+    settings.database_url,
     pool_pre_ping=True,
     future=True,
 )
@@ -105,7 +95,7 @@ def mark_task_retry(session, task_id: int, error_text: str):
             UPDATE tasks
             SET status = 'retry',
                 attempt_count = COALESCE(attempt_count, 0) + 1,
-                next_retry_at = now() + interval '30 seconds',
+                schedule_dt = now() + interval '30 seconds',
                 last_error = :error_text
             WHERE id = :task_id
         """),
@@ -121,10 +111,7 @@ def process_task(session, task):
     task_id = task["task_id"]
     logger.info("Processing task id=%s", task_id)
 
-    # здесь может быть твой I/O:
-    # - запросы в БД
-    # - вызов внешнего API
-    # - отправка письма
+
     time.sleep(2)
 
     logger.info("Finished task id=%s", task_id)
@@ -142,7 +129,8 @@ def worker_job():
             task = claim_one_task(session)
 
             if not task:
-                logger.info(f"Worker_id {current_workers} - no tasks available")
+                available_tasks = 0
+                logger.debug(f"Worker_id {current_workers} - no tasks available")
                 return
 
             try:
@@ -150,7 +138,7 @@ def worker_job():
                 mark_task_done(session, task)
 
             except Exception as exc:
-                logger.exception(f"Worker_id {current_workers} - task id {task["task_id"]} failed")
+                logger.exception(f'Worker_id {current_workers} - task id {task["task_id"]} failed')
 
                 with SessionLocal.begin() as session:
                     mark_task_retry(session, task["id"], str(exc))
@@ -163,8 +151,41 @@ def worker_job():
             current_workers -= 1
             
 
-def update_available_tasks():
-    pass
+def get_available_tasks():
+    global available_tasks
+    try:
+        with SessionLocal.begin() as session:
+            today = date.today()
+            now = datetime.now()
+    
+            available_tasks = session.execute(
+                text("""
+                    SELECT COUNT(task_id)
+                    FROM (
+                        SELECT 
+                            tr.task_id,
+                            ROW_NUMBER() OVER (PARTITION BY tr.task_id ORDER BY schedule_dt DESC) AS row_num
+                            FROM task_runnings tr
+                            JOIN tasks t ON tr.task_uid = t.task_uid
+                            WHERE tr.status = 'pending'
+                            AND t.status != 'running'
+                            AND tr.started_dt IS NULL
+                            AND tr.created_dt::date = :today
+                            AND tr.schedule_dt <= :now
+                            AND (tr.attempt_count IS NULL OR tr.attempt_count <= :max_attempt)
+                    ) sub
+                    WHERE row_num = 1
+                """),
+                {"today": today, "now": now, "max_attempt": MAX_ATTEMPTS}
+            ).scalar()
+
+            if available_tasks == 0:
+                logger.debug(f"Available {available_tasks} tasks for run")
+
+    except Exception as e:
+        logger.error(f"Database error while getting available tasks: {e}", exc_info=True)
+
+        
 
 def dispatch_loop(executor: ThreadPoolExecutor):
     logger.info("Dispatcher started")
@@ -179,28 +200,28 @@ def dispatch_loop(executor: ThreadPoolExecutor):
         if shutdown_event.is_set():
             break
         
-        update_available_tasks()
+        get_available_tasks()
+
+        if available_tasks == 0:
+            logger.debug("No available tasks for run")
+            break
 
         with active_workers_lock:
             free_workers = MAX_WORKERS - current_workers
 
         if free_workers <= 0:
-            logger.info("No free worker")
+            logger.debug("No free worker")
             break
 
-        logger.info("Submitting %s worker(s)", free_workers)
+        logger.debug("Submitting %s worker(s)", free_workers)
 
         for _ in range(free_workers):
             executor.submit(worker_job)
-
-        time.sleep(0.3)
-
 
     logger.info("Dispatcher stopped")
 
 def clear_status_for_frozen_task():
     pass
-
 
 def interval_loop():
 
@@ -221,10 +242,7 @@ def interval_loop():
         
         if now - last_fallback >= FROZEN_TASK_INTERVAL_SEC:
             logger.info("Run script for clear status of frozen task")
-            clear_status_for_frozen_task()
-
-
-        
+            clear_status_for_frozen_task()  
 
 
 def handle_signal(signum, frame):
@@ -237,27 +255,61 @@ def main():
     signal.signal(signal.SIGINT, handle_signal) # сигнал прерывания (нажатие Ctrl+C в терминале)
     signal.signal(signal.SIGTERM, handle_signal) # сигнал завершения (например, от kill <pid> или оркестратора docker/k8
 
-    with ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="schedule-worker") as executor:
-        dispatcher_thread = threading.Thread(
-            target=dispatch_loop,
-            args=(executor,),
-            name="dispatcher-thread",
-            daemon=True,
-        )
-        dispatcher_thread.start()
+    executor = ThreadPoolExecutor(
+        max_workers=MAX_WORKERS,
+        thread_name_prefix="schedule-worker"
+    )
+    
+    dispatcher_thread = threading.Thread(
+        target=dispatch_loop,
+        args=(executor,),
+        name="dispatcher-thread",
+        daemon=True,
+    )
+    dispatcher_thread.start()
 
-        logger.info("Worker service started")
-        logger.info("Threads: main(listener) + dispatcher + up to %s workers", MAX_WORKERS)
+    logger.info("Worker service started")
+    logger.info("Threads: main(listener) + dispatcher + up to %s workers", MAX_WORKERS)
 
-        try:
-            interval_loop()
-        finally:
-            shutdown_event.set()
-            wake_up_workers.set()
+    try:
+        interval_loop()
+    finally:
+        shutdown_event.set()
+        wake_up_workers.set()
+
+        if executor:
+            executor.shutdown(wait=False, cancel_futures=True)
+    
+        if dispatcher_thread and dispatcher_thread.is_alive():
             dispatcher_thread.join(timeout=5)
 
-        logger.info("Worker service stopped")
+        # import os
+        # import time
+        # def force_exit():
+        #     time.sleep(10)
+        #     logger.error("Force exit after timeout")
+        #     os._exit(1)
+        
+        # force_exit_thread = threading.Thread(target=force_exit, daemon=True)
+        # force_exit_thread.start()
 
+        # logger.info("Worker service stopped")
 
 if __name__ == "__main__":
     main()
+
+
+    # Ручное управление 
+    # def process_with_manual_commit():
+    # session = SessionLocal()
+    # try:
+    #     result = do_something(session)
+        
+    #     session.commit()
+    #     return result
+        
+    # except Exception:
+    #     session.rollback()
+    #     raise
+    # finally:
+    #     session.close()

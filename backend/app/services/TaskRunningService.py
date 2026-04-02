@@ -43,6 +43,10 @@ class TaskRunningService:
         validated_tasks_for_adding = []
 
         for task in tasks:
+            if task.status == TaskStatusEnum.RUNNING:
+                logger.debug(f'Task id {task.task_id} is now running')
+                continue
+
             if task.task_props is None: 
                 logger.warning(f'Task id {task.task_id} has no properties to be "ON"')
                 self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
@@ -108,7 +112,7 @@ class TaskRunningService:
                 email = task.task_props.email,
                 tg_chat_id = task.task_props.tg_chat_id,
                 storage_path = task.task_props.storage_path,
-                created_dt = DateTimeUtils.local_wo_micr(),
+                created_dt = DateTimeUtils.local_wo_microsec(),
                 status = RunningStatusEnum.PENDING.value
             )
 

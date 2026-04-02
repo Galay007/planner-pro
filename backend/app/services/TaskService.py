@@ -38,7 +38,7 @@ class TaskService:
         )
         new_task.task_uid = self.generate_id(task_id)
         
-        dt_time = DateTimeUtils.local_wo_micr()
+        dt_time = DateTimeUtils.local_wo_microsec()
         new_task.change_dt = dt_time
 
         self.taskRepository.create(new_task)
@@ -59,7 +59,7 @@ class TaskService:
 
 
     def update(self, task: Task) -> Task:
-        task.change_dt = DateTimeUtils.local_wo_micr()
+        task.change_dt = DateTimeUtils.local_wo_microsec()
         self.taskHistService.update_change_date_from_task_service(task.task_uid, task.task_name, task.change_dt)
         return self.taskRepository.update(task)
 
@@ -67,7 +67,7 @@ class TaskService:
         # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
 
-        dt_delete = DateTimeUtils.local_wo_micr()
+        dt_delete = DateTimeUtils.local_wo_microsec()
         self.taskHistService.update_deleted_date_from_task_service(task.task_uid, dt_delete)
 
     def check_control():

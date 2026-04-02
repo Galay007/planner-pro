@@ -3,7 +3,7 @@ from datetime import datetime,timezone
 class DateTimeUtils:
     
     @staticmethod
-    def local_wo_micr() -> datetime:
+    def local_wo_microsec() -> datetime:
         return datetime.now().replace(microsecond=0)
     
     @staticmethod
