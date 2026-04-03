@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import (
     Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, Enum as SQLEnum
 )
-from ..utils.values_enum import ValuesEnum
 from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
 from enum import Enum 
@@ -32,12 +31,12 @@ class Task(Base):
     task_group = Column(String, nullable=True)
     schedule = Column(String, nullable=True)
     task_deps_id = Column(BigInteger,ForeignKey('tasks.task_id', ondelete='SET NULL'),nullable=True)
-    status = Column(ValuesEnum(TaskStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
+    status = Column(SQLEnum(TaskStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                     nullable=False, default=TaskStatusEnum.NOT_ACTIVE)
     notifications = Column(Boolean, nullable=False, default=False)
     log_text = Column(Text,nullable=True)
     comment = Column(Text,nullable=True) 
-    in_running = Column(ValuesEnum(InRunningEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
+    in_running = Column(SQLEnum(InRunningEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                         nullable=False, default=InRunningEnum.CLEARED)
     added_running_dt = Column(DateTime(timezone=False), nullable=True )
     change_dt = Column(DateTime(timezone=False), nullable=False )

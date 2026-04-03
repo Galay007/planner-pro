@@ -9,6 +9,7 @@ from enum import Enum
 class RunningStatusEnum(str, Enum):
     SUCCESS = "success"
     ERROR = "error"
+    SKIPPED = "skipped"
     PENDING = "pending"
 
 class TriggerModeEnum(str, Enum):

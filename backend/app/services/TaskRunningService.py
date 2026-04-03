@@ -60,7 +60,7 @@ class TaskRunningService:
             valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
             valid_in_future = True if task.task_props.until_dt >= current_dt else False
 
-            if task.control == "on" and task.task_deps_id is None and task.in_running != InRunningEnum.ADDED:
+            if task.control == "on" and task.task_deps_id is None:
                 if  valid_dates and valid_cron and valid_for_running and valid_storage_path:
                     validated_tasks_for_adding.append(task)                  
                 elif valid_in_future and valid_cron and valid_for_running and valid_storage_path:
