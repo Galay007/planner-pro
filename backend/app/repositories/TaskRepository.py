@@ -2,7 +2,9 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session, lazyload, selectinload
 from ..models.TaskModel import Task
+from ..models.TaskFileModel import TaskFile
 from ..models.TaskPropertyModel import TaskProperty
+from ..models.ConnectionModel import Connection
 from datetime import datetime
 
 class TaskRepository:
