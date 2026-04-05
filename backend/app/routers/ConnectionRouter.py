@@ -13,6 +13,9 @@ ConnectionRouter = APIRouter(
 
 @ConnectionRouter.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
 def create_connection_handler(payload: ConnectionCreate, connectionService: ConnectionService = Depends()):
+
+    if get_object_from_db(connectionService, payload.name):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"Connection '{payload.name}' already exists")
     
     new_connection = connectionService.create(
         name=payload.name,
@@ -32,22 +35,24 @@ def create_connection_handler(payload: ConnectionCreate, connectionService: Conn
 
 @ConnectionRouter.get("/{name}")
 def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
-    connection = connectionService.get_by_name(name)
+    connection = get_object_from_db(connectionService, name)
     check_is_none(connection, name)
     
     return connection.build_sqlalchemy_url()
 
 @ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
 def delete(name: str, connectionService: ConnectionService = Depends()):
-    connection = connectionService.get_by_name(name)
+    connection = get_object_from_db(connectionService, name)
     check_is_none(connection, name)
     
     return connectionService.delete(connection)
 
 @ConnectionRouter.get("")
 def get_tasks(connectionService: ConnectionService = Depends()):
-
     return connectionService.get_all()
+
+def get_object_from_db(service, param):
+    return service.get_by_name(param)
 
 def check_is_none(object, param):
     if object is None:

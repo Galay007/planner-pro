@@ -1,35 +1,24 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Layout } from "@/components/Layout";
-import Scheduler from "./pages/Scheduler";
-import Connections from "./pages/Connections";
-import MigrationDb from "./pages/MigrationDb";
-import MigrationCsv from "./pages/MigrationCsv";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
+import Layout from './components/Layout/Layout';
+import SchedulerPage from './components/Scheduler/SchedulerPage';
+import ConnectionsPage from './components/Connections/ConnectionsPage';
+import MigrationDBPage from './components/MigrationDB/MigrationDBPage';
+import MigrationCSVPage from './components/MigrationCSV/MigrationCSVPage';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+export default function App() {
+  return (
+    <ThemeProvider>
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Scheduler />} />
-            <Route path="/connections" element={<Connections />} />
-            <Route path="/migration-db" element={<MigrationDb />} />
-            <Route path="/migration-csv" element={<MigrationCsv />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<SchedulerPage />} />
+            <Route path="connections" element={<ConnectionsPage />} />
+            <Route path="migration-db" element={<MigrationDBPage />} />
+            <Route path="migration-csv" element={<MigrationCSVPage />} />
+          </Route>
+        </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+    </ThemeProvider>
+  );
+}

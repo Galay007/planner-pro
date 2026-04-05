@@ -170,8 +170,8 @@ def check_status_frozen_tasks():
             query = text("""
                         UPDATE tasks
                         SET status = CASE 
-                            WHEN control = 'on' THEN :active
-                            WHEN control = 'off' THEN :not_active
+                            WHEN on_control = 'on' THEN :active
+                            WHEN on_control = 'off' THEN :not_active
                             ELSE status
                         END
                         WHERE task_uid IN :task_uids
@@ -208,7 +208,7 @@ def claim_one_task(session):
             FROM task_runnings tr
             JOIN tasks t ON tr.task_uid = t.task_uid
             WHERE tr.status = :pending
-              AND t.control = 'on'
+              AND t.on_control = 'on'
               AND t.status != :running
               AND tr.started_dt IS NULL
               AND tr.created_dt::date = :today
@@ -410,7 +410,7 @@ def get_available_tasks():
                         WHERE 1 = 1
                         AND tr.status = :pending                        
                         AND t.status != :running
-                        AND t.control = 'on'
+                        AND t.on_control = 'on'
                         AND tr.started_dt IS NULL
                         AND tr.created_dt::date = :today
                         AND tr.schedule_dt <= :now

@@ -1,0 +1,53 @@
+.theme-switcher {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0px;
+  border-top: 1px solid var(--color-sidebar-border);
+  margin-top: auto;
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 7px 8px 14px;
+  border-radius: 6px;
+  color: var(--color-sidebar-text);
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s, padding-left 0.25s ease, gap 0.25s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.theme-switcher--collapsed .theme-btn {
+  padding-left: 7px;
+  gap: 0;
+}
+
+.theme-btn:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-sidebar-active-text);
+}
+
+.theme-btn--active {
+  background: var(--color-sidebar-active-bg);
+  color: var(--color-sidebar-active-text);
+  font-weight: 600;
+}
+
+.theme-btn__label {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 120px;
+  opacity: 1;
+  transition: opacity 0.15s ease 0.2s, max-width 0.15s ease 0.2s;
+}
+
+
+.theme-switcher--collapsed .theme-btn__label {
+
+  max-width: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease, max-width 0.1s ease;
+}

@@ -1,0 +1,170 @@
+.table-wrap {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table__th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-table-header-bg);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.table__th:hover {
+  background: var(--color-table-row-hover);
+}
+
+.table__td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+
+.table__td--id {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  width: 50px;
+}
+
+.table__td--controls {
+  white-space: nowrap;
+  width: 70px;
+}
+
+.table__td--center {
+  text-align: center;
+}
+
+.table__row:hover .table__td {
+  background: var(--color-table-row-hover);
+}
+
+.table__row--running .table__td {
+  background: var(--color-table-row-running);
+}
+
+.table__empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-text-muted);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-badge-stopped-bg);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.toggle--on {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.toggle--loading {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+  display: block;
+}
+
+.toggle--on .toggle__thumb {
+  transform: translateX(16px);
+}
+
+/* Selected row */
+.table__row--selected .table__td {
+  background: var(--color-primary-light) !important;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status--stopped {
+  background: var(--color-badge-stopped-bg);
+  color: var(--color-badge-stopped-text);
+}
+
+.status--running {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status--error {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Sort icon */
+.sort-icon {
+  font-size: 11px;
+  margin-left: 3px;
+  color: var(--color-primary);
+}
+
+.sort-icon--inactive {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+}
+
+/* Links */
+.link-btn {
+  color: var(--color-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-btn:hover {
+  color: var(--color-primary-hover);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}

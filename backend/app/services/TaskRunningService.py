@@ -31,7 +31,7 @@ class TaskRunningService:
 
     def update_task_status_off(self, task: Task, new_status: TaskStatusEnum):
         task.status = new_status.value
-        task.control = "off"
+        task.on_control = "off"
         self.taskRepository.update_task(task)
 
     def has_parent(self, task_deps_id: int) -> bool:
@@ -59,7 +59,7 @@ class TaskRunningService:
             valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
             valid_in_future = True if task.task_props.until_dt >= current_dt else False
 
-            if task.control == "on" and task.task_deps_id is None:
+            if task.on_control == "on" and task.task_deps_id is None:
                 if  valid_dates and valid_cron and not valid_to_clean and not valid_is_added and valid_storage_path \
                     or (valid_is_added and
                                  task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
@@ -78,7 +78,7 @@ class TaskRunningService:
                     self.update_in_running_status(task, InRunningEnum.TO_CLEAN)
                     
 
-            if task.control == "on" and task.task_deps_id is not None:
+            if task.on_control == "on" and task.task_deps_id is not None:
 
                 valid_parent = True if self.has_parent(task.task_deps_id) else False
 
@@ -97,7 +97,7 @@ class TaskRunningService:
             valid_is_cleared = True if task.in_running == InRunningEnum.CLEARED  else False
             valid_is_not_active = True if task.status == TaskStatusEnum.NOT_ACTIVE  else False
 
-            if task.control == "off" and task.task_deps_id is None and (not valid_is_cleared or not valid_is_not_active):
+            if task.on_control == "off" and task.task_deps_id is None and (not valid_is_cleared or not valid_is_not_active):
                 self.taskRunningRepository.delete_by_task_id(task.task_id, current_dt)
                 task.added_running_dt = None
                 self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)

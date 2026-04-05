@@ -84,7 +84,7 @@ def update_task_property(
     task_property = taskPropertyService.get_by_task_id(task_id)
     check_is_none(task_property, task_id)
 
-    if task_property.task.control == "on":
+    if task_property.task.on_control == "on":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Can't apply changes in propertyes of task id {task_id} while it is 'ON'")
 
     if task_property.task_type != task_type and (files is None or len(files) == 0):

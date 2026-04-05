@@ -1,0 +1,76 @@
+/* ─── Theme: Light (default) ─── */
+[data-theme="light"] {
+  --color-bg: #eef2f7;
+  --color-sidebar-bg: #1e3a5f;
+  --color-sidebar-text: #b8cfe8;
+  --color-sidebar-active-bg: #163354;
+  --color-sidebar-active-text: #ffffff;
+  --color-sidebar-hover: #254d7a;
+  --color-sidebar-header: #6b9ec8;
+  --color-sidebar-border: #163354;
+  --color-primary: #0369a1;
+  --color-primary-hover: #0284c7;
+  --color-primary-light: #e0f2fe;
+  --color-border: #cbd5e1;
+  --color-white: #ffffff;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-danger: #dc2626;
+  --color-danger-light: #fee2e2;
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
+  --color-warning: #d97706;
+  --color-table-header-bg: #dce8f5;
+  --color-table-row-hover: #f0f6fc;
+  --color-table-row-running: #d1fae5;
+  --color-table-stripe: #f8fafc;
+  --color-input-bg: #ffffff;
+  --color-toolbar-bg: #ffffff;
+  --color-badge-stopped-bg: #e2e8f0;
+  --color-badge-stopped-text: #334155;
+  --color-ctrl-play-bg: #e0f2fe;
+  --color-ctrl-play-border: #7dd3fc;
+  --color-ctrl-play-text: #0369a1;
+  --color-ctrl-stop-bg: #fee2e2;
+  --color-ctrl-stop-border: #fca5a5;
+  --color-ctrl-stop-text: #dc2626;
+}
+
+/* ─── Theme: Dark Pro ─── */
+[data-theme="dark"] {
+  --color-bg: #1c202f;
+  --color-sidebar-bg: #16181f;
+  --color-sidebar-text: #8b949e;
+  --color-sidebar-active-bg: #252526;
+  --color-sidebar-active-text: #e2e8f0;
+  --color-sidebar-hover: #1a1e28;
+  --color-sidebar-header: #4b5563;
+  --color-sidebar-border: #1f2937;
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-light: #1e1b2e;
+  --color-border: #1f2937;
+  --color-white: #1a1e28;
+  --color-text: #e2e8f0;
+  --color-text-muted: #6b7280;
+  --color-danger: #f87171;
+  --color-danger-light: #2d1515;
+  --color-success: #34d399;
+  --color-success-light: #0f2a1e;
+  --color-warning: #fbbf24;
+  --color-table-header-bg: #13161e;
+  --color-table-row-hover: #1f2937;
+  --color-table-row-running: #0f2a1e;
+  --color-table-stripe: #1a1e28;
+  --color-input-bg: #13161e;
+  --color-toolbar-bg: #13161e;
+  --color-badge-stopped-bg: #1f2937;
+  --color-badge-stopped-text: #9ca3af;
+  --color-ctrl-play-bg: #1e1b2e;
+  --color-ctrl-play-border: #4c1d95;
+  --color-ctrl-play-text: #a78bfa;
+  --color-ctrl-stop-bg: #2d1515;
+  --color-ctrl-stop-border: #7f1d1d;
+  --color-ctrl-stop-text: #f87171;
+}
+

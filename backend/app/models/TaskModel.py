@@ -26,7 +26,7 @@ class Task(Base):
     task_uid = Column(BigInteger, primary_key=True, autoincrement=False)
     task_id = Column(BigInteger, unique=True, nullable=False)
     task_name = Column(String, nullable=False)
-    control = Column(String, nullable=False, default='off')
+    on_control = Column(String, nullable=False, default='off')
     owner = Column(String, nullable=False)
     task_group = Column(String, nullable=True)
     schedule = Column(String, nullable=True)
