@@ -9,7 +9,7 @@ class TaskCreate(BaseModel):
     owner: str
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None
-    notifications: bool
+    notifications: Optional[bool] = None
     comment: Optional[str] = None
 
 
@@ -28,7 +28,7 @@ class Task(BaseModel):
     comment: Optional[str] = None
     in_running: Optional[str]
     added_running_dt: Optional[str] = None
-    change_dt: Optional[str] = None
+    change_dt: Optional[datetime] = None
 
 class TaskOut(Task):
     task_id: int

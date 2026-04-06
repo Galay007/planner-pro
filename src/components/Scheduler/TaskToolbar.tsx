@@ -1,6 +1,8 @@
 import './TaskToolbar.css';
 
 interface Props {
+  onAdd: () => void;
+  adding: boolean;
   onRefresh: () => void;
   refreshing: boolean;
   selectedId: number | null;
@@ -8,12 +10,17 @@ interface Props {
   deleting: boolean;
 }
 
-export default function TaskToolbar({ onRefresh, refreshing, selectedId, onDelete, deleting }: Props) {
+export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, selectedId, onDelete, deleting }: Props) {
   return (
     <div className="toolbar">
       <div className="toolbar__group">
-        <button className="toolbar__btn toolbar__btn--primary" title="Добавить задачу">
-          +
+        <button
+          className="toolbar__btn toolbar__btn--primary"
+          title="Добавить задачу"
+          disabled={adding}
+          onClick={onAdd}
+        >
+          {adding ? '…' : '+'}
         </button>
         <button
           className="toolbar__btn toolbar__btn--primary"

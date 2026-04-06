@@ -1,20 +1,21 @@
 import { useState } from 'react';
-import type { TaskOut, TaskRunning } from '../../types';
-import { startTask, stopTask } from '../../services/api';
+import type { TaskOut, TaskRunning, ServerMessage } from '../../types';
+import { startTask, stopTask, parseApiError } from '../../services/api';
 import './TaskTable.css';
 
 interface Props {
   tasks: TaskOut[];
   taskRunnings: TaskRunning[];
-  onTasksChange: (tasks: TaskOut[]) => void;
   selectedId: number | null;
   onSelect: (id: number | null) => void;
+  onRefresh: () => void;
+  onServerMessage: (msg: ServerMessage) => void;
 }
 
 type SortKey = keyof TaskOut;
 type SortDir = 'asc' | 'desc';
 
-export default function TaskTable({ tasks, taskRunnings, onTasksChange, selectedId, onSelect }: Props) {
+export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, onRefresh, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
@@ -43,13 +44,16 @@ export default function TaskTable({ tasks, taskRunnings, onTasksChange, selected
     setLoadingIds((prev) => new Set(prev).add(id));
     try {
       if (task.on_control === 'off') {
-        await startTask(id);
-        onTasksChange(tasks.map((t) => (t.task_id === id ? { ...t, on_control: 'on' } : t)));
+        const { status } = await startTask(id);
+        onServerMessage({ status, text: `Задача #${id} запущена`, ok: true });
       } else {
-        await stopTask(id);
-        onTasksChange(tasks.map((t) => (t.task_id === id ? { ...t, on_control: 'off' } : t)));
+        const { status } = await stopTask(id);
+        onServerMessage({ status, text: `Задача #${id} остановлена`, ok: true });
       }
+      onRefresh();
     } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка управления', detail, ok: false });
       console.error('Control action failed', e);
     } finally {
       setLoadingIds((prev) => {
@@ -156,7 +160,7 @@ function TaskRow({ task, isRunning, isLoading, isSelected, onControl, onSelect }
       <td className="table__td table__td--id">{task.task_id}</td>
 
       {/* Управление — тумблер */}
-      <td className="table__td table__td--controls">
+      <td className="table__td table__td--center table__td--controls">
         <button
           className={`toggle${isOn ? ' toggle--on' : ''}${isLoading ? ' toggle--loading' : ''}`}
           title={isOn ? 'Остановить' : 'Запустить'}
@@ -167,22 +171,23 @@ function TaskRow({ task, isRunning, isLoading, isSelected, onControl, onSelect }
         </button>
       </td>
 
-      <td className="table__td">{task.task_name}</td>
-      <td className="table__td">{task.task_group ?? <span className="muted">—</span>}</td>
-      <td className="table__td">{task.owner}</td>
+      <td className="table__td table__td--center">{task.task_name}</td>
+      <td className="table__td table__td--center">{task.task_group ?? <span className="muted">—</span>}</td>
+      <td className="table__td table__td--center">{task.owner}</td>
 
-      <td className="table__td">
+      <td className="table__td table__td--center">
         <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
       </td>
 
-      <td className="table__td">{task.schedule ?? <span className="muted">—</span>}</td>
-      <td className="table__td">{task.task_deps_id ?? <span className="muted">—</span>}</td>
+      <td className="table__td table__td--center">{task.schedule ?? <span className="muted">—</span>}</td>
+      <td className="table__td table__td--center">{task.task_deps_id ?? 
+        <span className="muted">—</span>}</td>
 
       <td className="table__td table__td--center">
         <input type="checkbox" checked={task.notifications} readOnly />
       </td>
 
-      <td className="table__td">
+      <td className="table__td table__td--center">
         <button className="link-btn">Открыть</button>
       </td>
 

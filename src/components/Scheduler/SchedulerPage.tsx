@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { connectSSE, disconnectSSE } from '../../services/sse';
-import { getTasks, deleteTask } from '../../services/api';
-import type { TaskOut, TaskRunning } from '../../types';
+import { getTasks, deleteTask, getMaxTaskId, createTask, parseApiError } from '../../services/api';
+import type { TaskOut, TaskRunning, ServerMessage } from '../../types';
 import TaskToolbar from './TaskToolbar';
 import TaskTable from './TaskTable';
 import './SchedulerPage.css';
@@ -16,14 +16,28 @@ export default function SchedulerPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [serverMessage, setServerMessage] = useState<ServerMessage | null>(null);
+
+  const pushMessage = useCallback((msg: ServerMessage) => {
+    setServerMessage(msg);
+    setTimeout(() => setServerMessage(null), 4000);
+  }, []);
 
   function fetchTasks(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
     getTasks()
-      .then(setTasks)
-      .catch((e) => setError(e?.message ?? 'Ошибка загрузки задач'))
+      .then(({ data, status }) => {
+        setTasks(data);
+        pushMessage({ status, text: 'Все OK', ok: true });
+      })
+      .catch((e) => {
+        const { status, detail } = parseApiError(e);
+        setError(detail ?? 'Ошибка загрузки задач');
+        pushMessage({ status, text: 'Ошибка загрузки', detail, ok: false });
+      })
       .finally(() => {
         setLoading(false);
         setRefreshing(false);
@@ -44,14 +58,33 @@ export default function SchedulerPage() {
     return () => disconnectSSE();
   }, []);
 
+  async function handleAdd() {
+    setAdding(true);
+    try {
+      const maxId = await getMaxTaskId();
+      const { status } = await createTask(maxId + 1);
+      pushMessage({ status, text: 'Задача создана', ok: true });
+      fetchTasks(true);
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      pushMessage({ status, text: 'Ошибка создания задачи', detail, ok: false });
+      console.error('Add failed', e);
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function handleDelete() {
     if (selectedId === null) return;
     setDeleting(true);
     try {
-      await deleteTask(selectedId);
-      setTasks((prev) => prev.filter((t) => t.task_id !== selectedId));
+      const { status } = await deleteTask(selectedId);
+      pushMessage({ status, text: `Задача #${selectedId} удалена`, ok: true });
       setSelectedId(null);
+      fetchTasks(true);
     } catch (e) {
+      const { status, detail } = parseApiError(e);
+      pushMessage({ status, text: 'Ошибка удаления', detail, ok: false });
       console.error('Delete failed', e);
     } finally {
       setDeleting(false);
@@ -62,9 +95,11 @@ export default function SchedulerPage() {
     const q = search.toLowerCase();
     return (
       String(t.task_id).includes(q) ||
+      t.on_control.toLowerCase().includes(q) ||
       t.task_name.toLowerCase().includes(q) ||
       (t.task_group ?? '').toLowerCase().includes(q) ||
-      t.owner.toLowerCase().includes(q)
+      t.owner.toLowerCase().includes(q) ||
+      t.status.toLowerCase().includes(q)
     );
   });
 
@@ -78,6 +113,8 @@ export default function SchedulerPage() {
       </div>
 
       <TaskToolbar
+        onAdd={handleAdd}
+        adding={adding}
         onRefresh={() => fetchTasks(true)}
         refreshing={refreshing}
         selectedId={selectedId}
@@ -101,6 +138,16 @@ export default function SchedulerPage() {
             ✕ Сбросить
           </button>
         )}
+
+        {serverMessage && (
+          <div className={`server-msg${serverMessage.ok ? ' server-msg--ok' : ' server-msg--err'}`}>
+            <span className="server-msg__status">{serverMessage.status}</span>
+            <span className="server-msg__text">{serverMessage.text}</span>
+            {!serverMessage.ok && serverMessage.detail && (
+              <span className="server-msg__detail">— {serverMessage.detail}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {loading && <div className="scheduler__state">Загрузка...</div>}
@@ -110,9 +157,10 @@ export default function SchedulerPage() {
         <TaskTable
           tasks={filteredTasks}
           taskRunnings={taskRunnings}
-          onTasksChange={setTasks}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          onRefresh={() => fetchTasks(true)}
+          onServerMessage={pushMessage}
         />
       )}
     </div>

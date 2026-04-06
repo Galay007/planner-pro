@@ -13,6 +13,9 @@ TaskRouter = APIRouter(
 @TaskRouter.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
 def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
 
+    if get_object_from_db(taskService, payload.task_id):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"Taks with id '{payload.task_id}' already exists")
+
     new_task = taskService.create_task(
         task_id=payload.task_id,
         task_name=payload.task_name,
@@ -25,16 +28,18 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
 
     return new_task
 
-# добавить endpoint /tasks/{id}/start и POST /tasks/{id}/stop)
+@TaskRouter.get("/max_task_id")
+def get_tasks(taskService: TaskService = Depends()):
+    return taskService.get_max_task_id()
 
 @TaskRouter.delete("/{task_id}")
 def delete(task_id: int, taskService: TaskService = Depends()):
-    task = taskService.get_task_by_id(task_id)
+    task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
     
     if task.on_control == 'on':
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Can not be deleted while ON")
-   
+    print("I go to delete")
     taskService.delete(task)
 
     #to do добавить логи childs что parent был удален
@@ -42,7 +47,7 @@ def delete(task_id: int, taskService: TaskService = Depends()):
 
 @TaskRouter.get("/{task_id}")
 def get_task_by_id(task_id: int, taskService: TaskService = Depends()):
-    task = taskService.get_task_by_id(task_id)
+    task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)  
     return task
 
@@ -52,10 +57,15 @@ def get_tasks(taskService: TaskService = Depends()):
 
 @TaskRouter.put("/{task_id}/on")
 def get_tasks(task_id: int, taskService: TaskService = Depends()):
-    task = taskService.get_task_by_id(task_id)
+    task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
 
     if task.on_control == 'off':
+        if task.task_name == '-' or task.owner == '-':
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"No name or owner of task")
+        
+        if task.task_props is None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"No task properties")
         task.on_control = 'on'
     else: 
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to ON while it is already ON")
@@ -64,10 +74,11 @@ def get_tasks(task_id: int, taskService: TaskService = Depends()):
 
 @TaskRouter.put("/{task_id}/off")
 def get_tasks(task_id: int, taskService: TaskService = Depends()):
-    task = taskService.get_task_by_id(task_id)
+    task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
 
     if task.on_control == 'on':
+       
         task.on_control = 'off'
     else: 
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to OFF while it is already OFF")
@@ -76,24 +87,27 @@ def get_tasks(task_id: int, taskService: TaskService = Depends()):
 
 @TaskRouter.put("/{task_id}")
 def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
-    task = taskService.get_task_by_id(task_id)
+    task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
 
     old_control = task.on_control
     new_control = data.get('control')
 
-    if new_control == 'off' and old_control == 'on':
-        task.status = TaskStatusEnum.NOT_ACTIVE.value
-        if task.task_deps_id is None:
-            task.in_running = InRunningEnum.TO_CLEAN.value
-    elif new_control == 'on' and old_control == 'off':
-        task.status = TaskStatusEnum.ACTIVE.value
+    # if new_control == 'off' and old_control == 'on':
+    #     task.status = TaskStatusEnum.NOT_ACTIVE.value
+    #     if task.task_deps_id is None:                         
+    #         task.in_running = InRunningEnum.TO_CLEAN.value
+    # elif new_control == 'on' and old_control == 'off':
+    #     task.status = TaskStatusEnum.ACTIVE.value
 
     for key, value in data.items():
         if hasattr(task, key):
             setattr(task, key, value)
     
     return taskService.update(task)
+
+def get_object_from_db(service, param):
+    return service.get_task_by_id(param)
 
 def check_is_none(object, param):
     if object is None:

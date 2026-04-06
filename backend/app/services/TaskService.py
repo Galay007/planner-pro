@@ -56,7 +56,9 @@ class TaskService:
     
     def get_all(self) -> List[Task]:
         return self.taskRepository.get_all()
-
+    
+    def get_max_task_id(self) -> int:
+        return self.taskRepository.get_max_task_id()
 
     def update(self, task: Task) -> Task:
         task.change_dt = DateTimeUtils.local_wo_microsec()

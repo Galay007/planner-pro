@@ -26,7 +26,7 @@ export default function Sidebar() {
   return (
     <aside className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}>
       <div className="sidebar__header">
-        <span className="sidebar__title">ОРКЕСТРАТОР ЗАДАЧ</span>
+        <span className="sidebar__title">ОРКЕСТРАТОР</span>
         <button className="sidebar__toggle" onClick={toggle} title={collapsed ? 'Развернуть' : 'Свернуть'}>
           {collapsed ? '›' : '‹'}
         </button>

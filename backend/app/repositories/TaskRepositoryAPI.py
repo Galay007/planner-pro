@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import Depends,HTTPException, status
 from sqlalchemy.orm import Session, lazyload, selectinload
 
@@ -23,6 +23,12 @@ class TaskRepositoryAPI:
                 selectinload(Task.task_props).selectinload(TaskProperty.files)
             )
         )
+
+    def get_max_task_id(self) -> int:
+        return self.db.scalar(
+            select(func.coalesce(
+                func.max(Task.task_id), 0)
+                ))
 
     def get_all(self) -> List[Task]:
         return self.db.scalars(

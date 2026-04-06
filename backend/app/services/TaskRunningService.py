@@ -47,9 +47,10 @@ class TaskRunningService:
                 logger.debug(f'Task id {task.task_id} is now running')
                 continue
 
-            if task.task_props is None: 
-                logger.warning(f'Task id {task.task_id} has no properties to be "ON"')
-                self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
+            if task.task_props is None:
+                if task.on_control == 'on': 
+                    logger.warning(f'Task id {task.task_id} has no properties to be "ON"')
+                    self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
                 continue
 
             valid_dates = True if task.task_props.from_dt <= current_dt and task.task_props.until_dt >= current_dt else False

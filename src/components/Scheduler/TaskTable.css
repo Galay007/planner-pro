@@ -14,7 +14,7 @@
 
 .table__th {
   padding: 10px 12px;
-  text-align: left;
+  text-align: center;
   font-weight: 600;
   color: var(--color-text-muted);
   background: var(--color-table-header-bg);
@@ -30,7 +30,7 @@
 }
 
 .table__td {
-  padding: 9px 12px;
+  padding: 9px 0px;
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   color: var(--color-text);
@@ -41,6 +41,7 @@
   font-weight: 600;
   color: var(--color-text-muted);
   width: 50px;
+  text-align: center;
 }
 
 .table__td--controls {
