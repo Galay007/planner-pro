@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from .TaskRunningService import TaskRunningService
+from .SseService import send_to_client_update
+
+
 
 class TaskHistService:
     taskHistRepository: TaskHistRepository
@@ -15,6 +18,7 @@ class TaskHistService:
     ) -> None:
         self.taskHistRepository = TaskHistRepository(db) 
         self.taskRunningService =  TaskRunningService(db)     
+    
 
     def create(self,
         task_uid: int,
@@ -33,7 +37,6 @@ class TaskHistService:
 
         return self.taskHistRepository.create(new_task_hist)
 
-
     def get_by_uid(self, task_uid: int) -> TaskHist | None:           
         return self.taskHistRepository.get_by_uid(task_uid)
     
@@ -48,6 +51,7 @@ class TaskHistService:
 
     def update(self, taskHist: TaskHist) -> TaskHist:
         self.taskRunningService.refresh_runnings()
+        send_to_client_update({"action": "update_front"})
         return self.taskHistRepository.update(taskHist)
     
     def update_deleted_date_from_task_service(self, task_uid: int, delete_dt: datetime) -> None:

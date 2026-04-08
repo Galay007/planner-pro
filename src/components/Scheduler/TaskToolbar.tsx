@@ -20,7 +20,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
           disabled={adding}
           onClick={onAdd}
         >
-          {adding ? '…' : '+'}
+          {adding ? '+' : '+'}
         </button>
         <button
           className="toolbar__btn toolbar__btn--primary"
@@ -28,7 +28,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
           disabled={selectedId === null || deleting}
           onClick={onDelete}
         >
-          {deleting ? '…' : '−'}
+          {deleting ? '−' : '−'}
         </button>
         <button className="toolbar__btn" title="Копировать задачу">
           ⧉

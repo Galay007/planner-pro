@@ -88,7 +88,7 @@
 
 .toggle--loading {
   opacity: 0.5;
-  cursor: not-allowed;
+  cursor: wait;
 }
 
 .toggle__thumb {

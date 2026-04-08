@@ -19,6 +19,11 @@ export default function SchedulerPage() {
   const [adding, setAdding] = useState(false);
   const [serverMessage, setServerMessage] = useState<ServerMessage | null>(null);
 
+  useEffect(() => {
+    const busy = loading || refreshing || adding || deleting;
+    document.body.classList.toggle('is-loading', busy);
+  }, [loading, refreshing, adding, deleting]);
+
   const pushMessage = useCallback((msg: ServerMessage) => {
     setServerMessage(msg);
     setTimeout(() => setServerMessage(null), 4000);
@@ -54,6 +59,7 @@ export default function SchedulerPage() {
       onError: () => setSseStatus('error'),
       onTasks: (data) => setTasks(data),
       onTaskRunnings: (data) => setTaskRunnings(data),
+      onRefresh: () => fetchTasks(true)
     });
     return () => disconnectSSE();
   }, []);
@@ -113,13 +119,13 @@ export default function SchedulerPage() {
       </div>
 
       <TaskToolbar
-        onAdd={handleAdd}
-        adding={adding}
-        onRefresh={() => fetchTasks(true)}
-        refreshing={refreshing}
         selectedId={selectedId}
-        onDelete={handleDelete}
+        refreshing={refreshing}
+        onRefresh={() => fetchTasks(true)}
+        adding={adding}
+        onAdd={handleAdd}
         deleting={deleting}
+        onDelete={handleDelete}
       />
 
       <div className="scheduler__search-bar">

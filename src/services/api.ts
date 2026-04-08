@@ -54,7 +54,6 @@ export async function createTask(taskId: number): Promise<ApiResult> {
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
-/** Извлекает status и detail из axios-ошибки */
 export function parseApiError(e: unknown): ApiResult {
   if (axios.isAxiosError(e)) {
     return {

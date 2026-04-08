@@ -2,7 +2,7 @@ from ..repositories.TaskRunningRepository import TaskRunningRepository
 from ..models.TaskRunningModel import TaskRunning, RunningStatusEnum, TriggerModeEnum
 from ..models.TaskModel import Task, InRunningEnum, TaskStatusEnum
 from datetime import datetime
-from ..utils.datetime_utils import DateTimeUtils
+from ..utils.DatetimeUtils import DateTimeUtils
 from ..repositories.TaskRepository import TaskRepository
 from cronsim import CronSim
 import logging

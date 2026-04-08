@@ -30,7 +30,7 @@ SessionLocal = sessionmaker(
 )
 # db_session = scoped_session(SessionLocal)
 
-db_session = SessionLocal()
+
 
 # @contextmanager
 # def get_connection():
@@ -43,6 +43,7 @@ def get_orm_connection():
 
     try:
         print(f"🟢 Given db connection from pool")
+        db_session = SessionLocal()
         yield db_session
         db_session.commit()
     except Exception as e:

@@ -7,7 +7,7 @@
 }
 
 :root {
-  --sidebar-width: 200px;
+  --sidebar-width: 230px;
   font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
@@ -16,6 +16,11 @@ body {
   color: var(--color-text);
   font-size: 13px;
   transition: background 0.2s, color 0.2s;
+}
+
+body.is-loading,
+body.is-loading * {
+  cursor: wait !important;
 }
 
 button {

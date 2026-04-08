@@ -3,7 +3,7 @@ from ..repositories.TaskPropertyRepositoryAPI import TaskPropertyRepositoryAPI
 from ..models.TaskPropertyModel import TaskProperty
 from typing import List
 from datetime import datetime
-from ..utils.datetime_utils import DateTimeUtils
+from ..utils.DatetimeUtils import DateTimeUtils
 from .TaskFileService import TaskFileService
 from .TaskHistService import TaskHistService
 

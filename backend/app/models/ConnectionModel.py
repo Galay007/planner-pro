@@ -5,7 +5,7 @@ from sqlalchemy import (
 from cryptography.fernet import Fernet
 from ..configs.Config import settings
 from ..configs.Database import Base
-from ..utils.datetime_utils import DateTimeUtils
+from ..utils.DatetimeUtils import DateTimeUtils
 
 
 FERNET_KEY = settings.fernet_key

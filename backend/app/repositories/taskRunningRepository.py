@@ -18,7 +18,7 @@ class TaskRunningRepository:
 
     def create(self, taskRunning: TaskRunning):
         self.db.add(taskRunning)
-        self.db.flush()
+        # self.db.flush()
 
     def get_all(self) -> List[TaskRunning]:
         return self.db.scalars(select(TaskRunning)).all()

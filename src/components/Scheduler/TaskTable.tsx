@@ -15,7 +15,7 @@ interface Props {
 type SortKey = keyof TaskOut;
 type SortDir = 'asc' | 'desc';
 
-export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, onRefresh, onServerMessage }: Props) {
+export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
@@ -50,7 +50,7 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
         const { status } = await stopTask(id);
         onServerMessage({ status, text: `Задача #${id} остановлена`, ok: true });
       }
-      onRefresh();
+      // onRefresh();
     } catch (e) {
       const { status, detail } = parseApiError(e);
       onServerMessage({ status, text: 'Ошибка управления', detail, ok: false });

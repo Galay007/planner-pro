@@ -1,9 +1,10 @@
 from fastapi import Depends
 from ..repositories.TaskRepositoryAPI import TaskRepositoryAPI
 from ..models.TaskModel import Task
-from ..utils.datetime_utils import DateTimeUtils
+from ..utils.DatetimeUtils import DateTimeUtils
 from typing import List
 from .TaskHistService import TaskHistService
+from .SseService import send_to_client_update
 
 
 class TaskService:
@@ -43,6 +44,8 @@ class TaskService:
 
         self.taskRepository.create(new_task)
         self.taskHistService.create(new_task.task_uid, new_task.task_id, new_task.task_name, dt_time)
+
+        send_to_client_update({"action": "update_front"})
 
         return new_task
 

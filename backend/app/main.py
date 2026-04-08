@@ -1,5 +1,7 @@
 import logging
-from fastapi import FastAPI, HTTPException
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -11,20 +13,16 @@ from .models.TaskFileModel import TaskFile
 from .models.TaskRunningModel import TaskRunning
 from .models.TaskLogModel import TaskLog
 from .configs.Config import settings
+from .utils.SSEManager import SSEManager
 from .configs.Database import init_metadata_db
 from .exceptions import register_db_exception_handlers
+from .services.SseService import set_sse_manager
 from contextlib import asynccontextmanager
+import asyncio
 
-# from sqlalchemy.ext.asyncio import AsyncSession, create_engine  # для ассинхронных запросов
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy.orm import sessionmaker
-
-# @asynccontextmanager
-# async def lifespan(_: FastAPI):
-#     run_migrations()
-#     yield
 
 is_shutting_down = False
+see_manager: SSEManager
 
 logging.basicConfig(
     level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
@@ -34,18 +32,29 @@ logging.basicConfig(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global sse_manager, is_shutting_down
+
     init_metadata_db()
+    sse_manager = SSEManager()
+    set_sse_manager(sse_manager)
     
     register_db_exception_handlers(app)
     
-    print("✅ Application started")
+    print("Application started")
     
     yield 
 
-    global is_shutting_down
+    try:
+        await asyncio.wait_for(sse_manager.shutdown(), timeout=2.0)
+    except asyncio.TimeoutError:
+        logging.warning("SSE shutdown timed out")
+    except Exception as e:
+        logging.error(f"SSE shutdown error: {e}")
+
     is_shutting_down = True
 
-    print("🛑 Shutting down application...")  
+    print("Shutting down application...")  
+
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
@@ -57,12 +66,7 @@ app.include_router(TaskPropertyRouter)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",  
-        "http://127.0.0.1:8080",
-        "http://localhost:5173", 
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"], 
     allow_headers=["*"],  
@@ -71,8 +75,37 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict[str, str]:
     if is_shutting_down:
-        return {"status": "shutting_down"}  # Для балансировщика нагрузки
+        return {"status": "shutting_down"} 
     return {"status": "ok"}
+
+@app.get("/sse")
+async def sse_endpoint(request: Request):
+    return StreamingResponse(
+        sse_manager.add_client(request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+@app.post("/sse/emit")
+async def emit_event(message: str):
+    await sse_manager.broadcast(message)
+    return {"ok": True}
+
+
+
+if __name__ == "__main__":
+    host = settings.host
+    port = settings.port
+    uvicorn.run(
+        "app.main:app", 
+        host=host,
+        port=port,
+        reload=False,   
+        log_level="info"
+    )
 
 
 

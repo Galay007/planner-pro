@@ -28,7 +28,7 @@ export default function Sidebar() {
       <div className="sidebar__header">
         <span className="sidebar__title">ОРКЕСТРАТОР</span>
         <button className="sidebar__toggle" onClick={toggle} title={collapsed ? 'Развернуть' : 'Свернуть'}>
-          {collapsed ? '›' : '‹'}
+          {collapsed ? '››' : '‹‹'}
         </button>
       </div>
 

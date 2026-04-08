@@ -1,6 +1,6 @@
 import type { TasksPayload, TaskRunningsPayload } from '../types';
 
-const SSE_URL = 'http://localhost:8000/sse';
+const SSE_URL = 'http://192.168.1.67:8000/sse';
 
 let eventSource: EventSource | null = null;
 
@@ -9,6 +9,7 @@ export interface SSEHandlers {
   onTaskRunnings?: (data: TaskRunningsPayload) => void;
   onError?: (error: Event) => void;
   onOpen?: () => void;
+  onRefresh?: () => void;
 }
 
 export function connectSSE(handlers: SSEHandlers): EventSource {
@@ -50,6 +51,12 @@ export function connectSSE(handlers: SSEHandlers): EventSource {
     } catch (e) {
       console.error('[SSE] Failed to parse task_runnings event', e);
     }
+  });
+
+
+  eventSource.addEventListener('update', () => {
+    console.log('[SSE] update event received');
+    handlers.onRefresh?.();
   });
 
   return eventSource;
