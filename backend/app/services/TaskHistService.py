@@ -50,9 +50,10 @@ class TaskHistService:
         return self.taskHistRepository.get_all()
 
     def update(self, taskHist: TaskHist) -> TaskHist:
-        self.taskRunningService.refresh_runnings()
-        send_to_client_update({"action": "update_front"})
-        return self.taskHistRepository.update(taskHist)
+        self.taskRunningService.refresh_runnings()       
+        task_hist = self.taskHistRepository.update(taskHist)
+        send_to_client_update(event_type="task_update")
+        return task_hist
     
     def update_deleted_date_from_task_service(self, task_uid: int, delete_dt: datetime) -> None:
         taskHist = self.get_by_uid(task_uid)

@@ -1,0 +1,101 @@
+.conn-list {
+  width: 320px;
+  min-width: 280px;
+  height: 800px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-toolbar-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.conn-list__scroll {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.conn-list__empty {
+  padding: 20px 14px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.conn-list__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.conn-list__th {
+  padding: 9px 44px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-table-header);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+
+.conn-list__th:hover {
+  background: var(--color-table-row-hover);
+}
+
+.conn-list__sort-icon {
+  margin-left: 4px;
+  opacity: 0.35;
+  font-size: 11px;
+}
+
+.conn-list__sort-icon--active {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+.conn-list__tr {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.conn-list__tr:not(:last-child) td {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.conn-list__tr:hover {
+  background: var(--color-table-row-hover);
+}
+
+.conn-list__tr--active {
+  background: var(--color-primary-light);
+}
+
+.conn-list__tr--active:hover {
+  background: var(--color-primary-light);
+}
+
+.conn-list__tr--active .conn-list__td {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.conn-list__td {
+  padding: 9px 9px 9px 20px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.conn-list__td--type {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}

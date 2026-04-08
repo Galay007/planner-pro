@@ -25,6 +25,10 @@ class ConnectionRepositoryAPI:
 
     def delete(self, connection: Connection) -> None:
         self.db.delete(connection)
+        self.db.flush()
 
     def get_all(self) -> List[Connection]:
         return self.db.scalars(select(Connection)).all()
+    
+    def get_db(self) -> Session:
+        return self.db

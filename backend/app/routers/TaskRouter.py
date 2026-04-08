@@ -39,7 +39,6 @@ def delete(task_id: int, taskService: TaskService = Depends()):
     
     if task.on_control == 'on':
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Can not be deleted while ON")
-    print("I go to delete")
     taskService.delete(task)
 
     #to do добавить логи childs что parent был удален

@@ -54,7 +54,7 @@ export function connectSSE(handlers: SSEHandlers): EventSource {
   });
 
 
-  eventSource.addEventListener('update', () => {
+  eventSource.addEventListener('task_update', () => {
     console.log('[SSE] update event received');
     handlers.onRefresh?.();
   });

@@ -15,6 +15,8 @@ def send_to_client_update(data_dict: Optional[Dict] = None, event_type: Optional
         return
     data = data_dict or {} 
 
+    print('Sent sse trigger')
+
     if event_type is None:
         from_thread.run(sent_only_data, data)
     else:

@@ -21,6 +21,23 @@ export interface TaskRunning {
 export type TasksPayload = TaskOut[];
 export type TaskRunningsPayload = TaskRunning[];
 
+// Connections
+export type ConnType = 'postgresql' | 'mysql' | 'mariadb' | 'mssql' | 'oracle' | 'sqlite' | 'teradata';
+
+export interface ConnectionOut {
+  name: string;
+  conn_type: ConnType;
+  host: string | null;
+  port: number | null;
+  db_name: string | null;
+  login: string | null;
+  db_path: string | null;
+}
+
+export interface ConnectionIn extends ConnectionOut {
+  pass_str: string | null;
+}
+
 export interface ServerMessage {
   status: number;
   text: string;

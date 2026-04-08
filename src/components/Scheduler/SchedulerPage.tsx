@@ -36,6 +36,7 @@ export default function SchedulerPage() {
     getTasks()
       .then(({ data, status }) => {
         setTasks(data);
+        console.log(data)
         pushMessage({ status, text: 'Все OK', ok: true });
       })
       .catch((e) => {
@@ -70,7 +71,7 @@ export default function SchedulerPage() {
       const maxId = await getMaxTaskId();
       const { status } = await createTask(maxId + 1);
       pushMessage({ status, text: 'Задача создана', ok: true });
-      fetchTasks(true);
+      //fetchTasks(true); через sse
     } catch (e) {
       const { status, detail } = parseApiError(e);
       pushMessage({ status, text: 'Ошибка создания задачи', detail, ok: false });
@@ -87,7 +88,7 @@ export default function SchedulerPage() {
       const { status } = await deleteTask(selectedId);
       pushMessage({ status, text: `Задача #${selectedId} удалена`, ok: true });
       setSelectedId(null);
-      fetchTasks(true);
+      //fetchTasks(true); через sse
     } catch (e) {
       const { status, detail } = parseApiError(e);
       pushMessage({ status, text: 'Ошибка удаления', detail, ok: false });
@@ -146,11 +147,11 @@ export default function SchedulerPage() {
         )}
 
         {serverMessage && (
-          <div className={`server-msg${serverMessage.ok ? ' server-msg--ok' : ' server-msg--err'}`}>
-            <span className="server-msg__status">{serverMessage.status}</span>
-            <span className="server-msg__text">{serverMessage.text}</span>
+          <div className={`server-msg${serverMessage.ok ? '' : ' server-msg--err'}`}>
+            {/* <span className="server-msg__status">{serverMessage.status}</span>
+            <span className="server-msg__text">{serverMessage.text}</span> */}
             {!serverMessage.ok && serverMessage.detail && (
-              <span className="server-msg__detail">— {serverMessage.detail}</span>
+              <span>{serverMessage.status} — {serverMessage.detail}</span>
             )}
           </div>
         )}

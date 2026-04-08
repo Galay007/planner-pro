@@ -45,7 +45,7 @@ class TaskService:
         self.taskRepository.create(new_task)
         self.taskHistService.create(new_task.task_uid, new_task.task_id, new_task.task_name, dt_time)
 
-        send_to_client_update({"action": "update_front"})
+        send_to_client_update(event_type="task_update")
 
         return new_task
 

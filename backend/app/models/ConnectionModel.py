@@ -18,7 +18,7 @@ class Connection(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), unique=True, nullable=False)          
     conn_type = Column(String(50), nullable=False)                   
-    host = Column(String(255), nullable=False)
+    host = Column(String(255), nullable=True)
     port = Column(Integer, nullable=True)
     db_name = Column(String(255), nullable=True)                      
     login = Column(String(255), nullable=True)
@@ -57,8 +57,7 @@ class Connection(Base):
         return f"{self.conn_type}://{auth}{self.host}{port_part}{schema_part}"
     
     def normalize(self):
-        if self.password:
-            has_password = "true"
+ 
         return {
             "id": self.id.__str__(),
             "name": self.name.__str__(),
@@ -66,8 +65,7 @@ class Connection(Base):
             "host": self.host.__str__(),      
             "port": self.port.__str__(),      
             "db_name": self.db_name.__str__(),                           
-            "login": self.login.__str__(),      
-            "has_password": has_password.__str__(),        
+            "login": self.login.__str__(),            
             "db_path": self.db_path.__str__(),
             "created_at": self.created_at.__str__()   
         }

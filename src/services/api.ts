@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { TaskOut } from '../types';
+import type { TaskOut, ConnectionOut, ConnectionIn } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -51,6 +51,32 @@ export async function createTask(taskId: number): Promise<ApiResult> {
     task_name: '-',
     owner: '-',
   });
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+// Connections
+export async function getConnections(): Promise<{ data: ConnectionOut[] } & ApiResult> {
+  const response = await api.get<ConnectionOut[]>('/connections');
+  return { data: response.data, status: response.status };
+}
+
+export async function getConnection(name: string): Promise<{ data: ConnectionOut } & ApiResult> {
+  const response = await api.get<ConnectionOut>(`/connections/${name}`);
+  return { data: response.data, status: response.status };
+}
+
+export async function createConnection(body: ConnectionIn): Promise<ApiResult> {
+  const response = await api.post('/connections', body);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function deleteConnection(name: string): Promise<ApiResult> {
+  const response = await api.delete(`/connections/${name}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function testConnection(body: Partial<ConnectionIn>): Promise<ApiResult> {
+  const response = await api.post('/connections/test', body);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 

@@ -27,11 +27,13 @@ class TaskRunningService:
     def update_in_running_status(self, task: Task, new_status: InRunningEnum):
         if task.task_deps_id is None:
             task.in_running = new_status.value
+            task.change_dt = DateTimeUtils.local_with_micr()
         self.taskRepository.update_task(task)
 
     def update_task_status_off(self, task: Task, new_status: TaskStatusEnum):
         task.status = new_status.value
         task.on_control = "off"
+        task.change_dt = DateTimeUtils.local_with_micr()
         self.taskRepository.update_task(task)
 
     def has_parent(self, task_deps_id: int) -> bool:
@@ -59,19 +61,20 @@ class TaskRunningService:
             valid_to_clean = True if task.in_running == InRunningEnum.TO_CLEAN  else False
             valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
             valid_in_future = True if task.task_props.until_dt >= current_dt else False
+            valid_connection = True if task.task_props.connection_id is not None else False
 
             if task.on_control == "on" and task.task_deps_id is None:
-                if  valid_dates and valid_cron and not valid_to_clean and not valid_is_added and valid_storage_path \
+                if  valid_dates and valid_cron and not valid_to_clean and not valid_is_added and valid_connection and valid_storage_path \
                     or (valid_is_added and
                                  task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
            
                     validated_tasks_for_adding.append(task) 
                         
 
-                elif valid_in_future and valid_cron and not valid_is_added  and valid_storage_path:
+                elif valid_in_future and valid_cron and not valid_is_added  and valid_storage_path and valid_connection:
                     pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
 
-                elif not valid_dates or not valid_cron or valid_to_clean or not valid_storage_path:
+                elif not valid_dates or not valid_cron or valid_to_clean or not valid_storage_path or not valid_connection:
 
                     logger.warning(f'Task id {task.task_id} can not be "ON" due to invalid params for running')
                     task.added_running_dt = None
@@ -83,7 +86,7 @@ class TaskRunningService:
 
                 valid_parent = True if self.has_parent(task.task_deps_id) else False
 
-                if not valid_parent or not valid_in_future or valid_cron or not valid_storage_path: # если valid_cron == True, то это ошибка для depended task
+                if not valid_parent or not valid_in_future or valid_cron or not valid_storage_path or not valid_connection: # если valid_cron == True, то это ошибка для depended task
                     logger.warning(f'Depended task id {task.task_id} can not be "ON" due to invalid params')
                     task.added_running_dt = None
                     self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)

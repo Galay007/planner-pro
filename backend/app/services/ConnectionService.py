@@ -1,15 +1,20 @@
 from fastapi import Depends
 from ..repositories.ConnectionRepositoryAPI import ConnectionRepositoryAPI
 from ..models.ConnectionModel import Connection
+from .TaskRunningService import TaskRunningService
 from typing import List
+from .SseService import send_to_client_update
 
 class ConnectionService:
     connectionRepositoryAPI: ConnectionRepositoryAPI
+    taskRunningService: TaskRunningService
+
 
     def __init__(
         self, connectionRepositoryAPI: ConnectionRepositoryAPI = Depends()
     ) -> None:
         self.connectionRepositoryAPI = connectionRepositoryAPI
+        self.taskRunningService = TaskRunningService(self.connectionRepositoryAPI.get_db())
 
     def create(self,
         name: str,
@@ -41,7 +46,11 @@ class ConnectionService:
         return self.connectionRepositoryAPI.get(name)
     
     def delete(self,connection: Connection) -> None:
-        return self.connectionRepositoryAPI.delete(connection)
-    
+        self.connectionRepositoryAPI.delete(connection)
+        self.taskRunningService.refresh_runnings()
+        send_to_client_update(event_type="task_update")
+
     def get_all(self) -> List[Connection]:
         return self.connectionRepositoryAPI.get_all()
+    
+

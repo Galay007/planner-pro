@@ -91,6 +91,19 @@
   cursor: wait;
 }
 
+.toggle-wrap {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.toggle-wrap--waiting {
+  cursor: wait;
+}
+
+.toggle-wrap--waiting .toggle {
+  pointer-events: none;
+}
+
 .toggle__thumb {
   position: absolute;
   top: 2px;

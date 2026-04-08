@@ -1,0 +1,16 @@
+/* Reuses global .toolbar, .toolbar__btn etc. from TaskToolbar.css conventions */
+
+.toolbar__btn--test {
+  color: var(--color-warning);
+  font-size: 14px;
+}
+
+.toolbar__btn--test:hover:not(:disabled) {
+  background: #fef9c3;
+}
+
+.toolbar__btn--test:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  cursor: not-allowed;
+}

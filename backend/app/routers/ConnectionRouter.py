@@ -11,12 +11,12 @@ ConnectionRouter = APIRouter(
 )
 
 
-@ConnectionRouter.post("", response_model=ConnectionOut, status_code=status.HTTP_201_CREATED)
-def create_connection_handler(payload: ConnectionCreate, connectionService: ConnectionService = Depends()):
+@ConnectionRouter.post("", response_model=ConnectionCreate, status_code=status.HTTP_201_CREATED)
+def create_connection_handler(payload: ConnectionOut, connectionService: ConnectionService = Depends()):
 
     if get_object_from_db(connectionService, payload.name):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"Connection '{payload.name}' already exists")
-    
+
     new_connection = connectionService.create(
         name=payload.name,
         conn_type=payload.conn_type,
@@ -24,23 +24,23 @@ def create_connection_handler(payload: ConnectionCreate, connectionService: Conn
         port=payload.port,
         db_name=payload.db_name,
         login=payload.login,
-        password=payload.password,
+        password=payload.pass_str,
         db_path=payload.db_path
     )
 
     connection = connectionService.get_by_name(new_connection.name)
 
-    return connection.normalize()
+    return connection
 
 
-@ConnectionRouter.get("/{name}")
+@ConnectionRouter.get("/{name}", response_model=ConnectionOut)
 def get_connection_handler(name: str, connectionService: ConnectionService = Depends()):
     connection = get_object_from_db(connectionService, name)
     check_is_none(connection, name)
     
-    return connection.build_sqlalchemy_url()
+    return connection
 
-@ConnectionRouter.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
+@ConnectionRouter.delete("/{name}")
 def delete(name: str, connectionService: ConnectionService = Depends()):
     connection = get_object_from_db(connectionService, name)
     check_is_none(connection, name)

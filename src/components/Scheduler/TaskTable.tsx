@@ -18,8 +18,6 @@ type SortDir = 'asc' | 'desc';
 export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set());
-
   const runningIds = new Set(taskRunnings.map((r) => r.task_id));
 
   function handleSort(key: SortKey) {
@@ -41,7 +39,6 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
 
   async function handleControl(task: TaskOut) {
     const id = task.task_id;
-    setLoadingIds((prev) => new Set(prev).add(id));
     try {
       if (task.on_control === 'off') {
         const { status } = await startTask(id);
@@ -50,17 +47,10 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
         const { status } = await stopTask(id);
         onServerMessage({ status, text: `Задача #${id} остановлена`, ok: true });
       }
-      // onRefresh();
     } catch (e) {
       const { status, detail } = parseApiError(e);
       onServerMessage({ status, text: 'Ошибка управления', detail, ok: false });
       console.error('Control action failed', e);
-    } finally {
-      setLoadingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     }
   }
 
@@ -106,7 +96,7 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
                 key={task.task_id}
                 task={task}
                 isRunning={runningIds.has(task.task_id)}
-                isLoading={loadingIds.has(task.task_id)}
+
                 isSelected={selectedId === task.task_id}
                 onControl={handleControl}
                 onSelect={onSelect}
@@ -122,13 +112,14 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
 interface RowProps {
   task: TaskOut;
   isRunning: boolean;
-  isLoading: boolean;
   isSelected: boolean;
   onControl: (task: TaskOut) => void;
   onSelect: (id: number | null) => void;
 }
 
-function TaskRow({ task, isRunning, isLoading, isSelected, onControl, onSelect }: RowProps) {
+function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps) {
+  const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
+
   const statusClass =
     task.status === 'running' ? 'status--running'
     : task.status === 'error' ? 'status--error'
@@ -141,6 +132,8 @@ function TaskRow({ task, isRunning, isLoading, isSelected, onControl, onSelect }
     : task.status;
 
   const isOn = task.on_control === 'on';
+  // Если optimisticOn задан — показываем его, иначе реальное значение из props
+  const displayOn = optimisticOn !== null ? optimisticOn : isOn;
 
   function handleRowClick(e: React.MouseEvent) {
     // Don't deselect when clicking interactive elements
@@ -159,16 +152,28 @@ function TaskRow({ task, isRunning, isLoading, isSelected, onControl, onSelect }
     >
       <td className="table__td table__td--id">{task.task_id}</td>
 
-      {/* Управление — тумблер */}
       <td className="table__td table__td--center table__td--controls">
-        <button
-          className={`toggle${isOn ? ' toggle--on' : ''}${isLoading ? ' toggle--loading' : ''}`}
-          title={isOn ? 'Остановить' : 'Запустить'}
-          disabled={isLoading}
-          onClick={() => onControl(task)}
+        <span
+          className="toggle-wrap"
+          onClick={(e) => {
+            const wrap = e.currentTarget;
+            if (wrap.classList.contains('toggle-wrap--waiting')) return;
+            wrap.classList.add('toggle-wrap--waiting');
+            setOptimisticOn(!isOn);
+            setTimeout(() => {
+              wrap.classList.remove('toggle-wrap--waiting');
+              setOptimisticOn(null);
+            }, 500);
+            onControl(task);
+          }}
         >
-          <span className="toggle__thumb" />
-        </button>
+          <button
+            className={`toggle${displayOn ? ' toggle--on' : ''}`}
+            title={displayOn ? 'Остановить' : 'Запустить'}
+          >
+            <span className="toggle__thumb" />
+          </button>
+        </span>
       </td>
 
       <td className="table__td table__td--center">{task.task_name}</td>

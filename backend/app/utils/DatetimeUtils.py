@@ -7,6 +7,10 @@ class DateTimeUtils:
         return datetime.now().replace(microsecond=0)
     
     @staticmethod
+    def local_with_micr() -> datetime:
+        return datetime.now()
+    
+    @staticmethod
     def now_utc() -> datetime:
         return datetime.now(timezone.utc)
     
