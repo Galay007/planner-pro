@@ -71,7 +71,7 @@
 
 .toolbar__btn--refresh {
   font-size: 18px;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   width: 30px;
   height: 30px;
   border-radius: 4px;

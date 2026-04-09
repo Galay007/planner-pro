@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class ConnectionCreate(BaseModel):
+class ConnectionSchem(BaseModel):
     name: str
     conn_type: str
     host:  Optional[str] = None
@@ -12,16 +12,5 @@ class ConnectionCreate(BaseModel):
     pass_str: Optional[str] = None
     db_path: Optional[str] = None
    
-
-
-class ConnectionOut(BaseModel):
-    name: str
-    conn_type: str
-    host: Optional[str] = None
-    port: Optional[int]
-    db_name: Optional[str]
-    login: Optional[str]
-    pass_str: Optional[str]
-    db_path: Optional[str]
 
 

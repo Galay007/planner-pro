@@ -1,4 +1,11 @@
-/* Reuses global .toolbar, .toolbar__btn etc. from TaskToolbar.css conventions */
+.toolbar__btn:focus {
+  outline: none;
+}
+
+/* .toolbar__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+} */
 
 .toolbar__btn--test {
   color: var(--color-warning);

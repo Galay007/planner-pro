@@ -12,6 +12,7 @@ interface Props {
   selectedName: string | null;
   onSelect: (name: string) => void;
   search: string;
+  testPassedName: string | null;
 }
 
 const COLS = (
@@ -21,8 +22,8 @@ const COLS = (
   </colgroup>
 );
 
-export default function ConnectionsList({ connections, selectedName, onSelect, search }: Props) {
-  const [sortCol, setSortCol] = useState<'name' | 'conn_type'>('name');
+export default function ConnectionsList({ connections, selectedName, onSelect, search, testPassedName }: Props) {
+  const [sortCol, setSortCol] = useState<'name' | 'conn_type' | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   function toggleSort(col: 'name' | 'conn_type') {
@@ -36,6 +37,7 @@ export default function ConnectionsList({ connections, selectedName, onSelect, s
       return c.name.toLowerCase().includes(q) || c.conn_type.toLowerCase().includes(q);
     })
     .sort((a, b) => {
+      if (!sortCol) return 0;
       const cmp = a[sortCol].localeCompare(b[sortCol]);
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -75,7 +77,10 @@ export default function ConnectionsList({ connections, selectedName, onSelect, s
                   className={`conn-list__tr${selectedName === c.name ? ' conn-list__tr--active' : ''}`}
                   onClick={() => onSelect(c.name)}
                 >
-                  <td className="conn-list__td">{c.name}</td>
+                  <td className="conn-list__td">
+                    {c.name}
+                    {testPassedName === c.name && <span className="conn-list__dot" />}
+                  </td>
                   <td className="conn-list__td">{c.conn_type}</td>
                 </tr>
               ))}

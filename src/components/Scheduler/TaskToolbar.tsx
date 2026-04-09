@@ -1,4 +1,5 @@
 import './TaskToolbar.css';
+import { Plus, Minus } from 'lucide-react';
 
 interface Props {
   onAdd: () => void;
@@ -20,7 +21,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
           disabled={adding}
           onClick={onAdd}
         >
-          {adding ? '+' : '+'}
+          <Plus size={15} strokeWidth={1.5} />
         </button>
         <button
           className="toolbar__btn toolbar__btn--primary"
@@ -28,7 +29,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
           disabled={selectedId === null || deleting}
           onClick={onDelete}
         >
-          {deleting ? '−' : '−'}
+          <Minus size={15} strokeWidth={1.5} />
         </button>
         <button className="toolbar__btn" title="Копировать задачу">
           ⧉

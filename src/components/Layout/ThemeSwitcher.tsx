@@ -4,7 +4,7 @@ import './ThemeSwitcher.css';
 
 const themes: { value: Theme; label: string; icon: string }[] = [
   { value: 'light', label: 'Light', icon: '☀️' },
-  { value: 'dark', label: 'Dark Pro', icon: '🌙' },
+  { value: 'dark', label: 'Dark', icon: '🌙' },
 ];
 
 interface Props {

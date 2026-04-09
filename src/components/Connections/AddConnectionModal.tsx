@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ConnType, ConnectionIn } from '../../types';
 import { createConnection, testConnection, parseApiError } from '../../services/api';
 import type { ServerMessage } from '../../types';
@@ -41,8 +41,18 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
   const [form, setForm] = useState<FormState>(defaultForm());
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testPassed, setTestPassed] = useState<boolean | null>(null);
 
   const isSqlite = form.conn_type === 'sqlite';
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && !saving && !testing) handleSave();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose, saving, testing, form]);
 
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
@@ -62,12 +72,15 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const cleaned = name === 'db_path' ? value.replace(/['"]/g, '') : value;
+    setForm((prev) => ({ ...prev, [name]: cleaned }));
+    setTestPassed(null);
   }
 
   function handlePortChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setForm((prev) => ({ ...prev, port: val === '' ? '' : parseInt(val, 10) }));
+    setTestPassed(false);
   }
 
   function handleTypeChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -84,22 +97,33 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
     setTouched({});
   }
 
-  async function handleTest() {
-    if (!touchRequired()) return;
+  async function runTest(): Promise<boolean> {
     setTesting(true);
     try {
       const result = await testConnection(toPayload(form));
-      pushMessage({ status: result.status, text: 'Тест соединения', detail: result.detail, ok: result.status === 200 });
+      const ok = result.status === 200;
+      pushMessage({ status: result.status, text: 'Тест соединения', detail: result.detail, ok });
+      setTestPassed(ok);
+      return ok;
     } catch (e) {
       const err = parseApiError(e);
       pushMessage({ status: err.status, text: 'Ошибка теста', detail: err.detail, ok: false });
+      setTestPassed(false);  // false = тест запущен, провален
+      return false;
     } finally {
       setTesting(false);
     }
   }
 
+  async function handleTest() {
+    if (!touchRequired()) return;
+    await runTest();
+  }
+
   async function handleSave() {
     if (!touchRequired()) return;
+    const testOk = await runTest();
+    if (!testOk) return;
     setSaving(true);
     try {
       const result = await createConnection(toPayload(form));
@@ -173,13 +197,17 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
         </div>
 
         <div className="modal__footer">
-          <button className="modal__btn modal__btn--cancel" onClick={onClose}>Отмена</button>
-          <button className="modal__btn modal__btn--test" onClick={handleTest} disabled={testing}>
-            {testing ? '…' : '⚡ Тест'}
-          </button>
           <button className="modal__btn modal__btn--save" onClick={handleSave} disabled={saving}>
-            {saving ? '…' : 'Сохранить'}
+            Сохранить
           </button>
+          <button
+            className={`modal__btn modal__btn--test${testPassed === true ? ' modal__btn--test-ok' : testPassed === false ? ' modal__btn--test-fail' : ''}`}
+            onClick={handleTest}
+            disabled={testing}
+          >
+            {testPassed === true ? 'OK' : testPassed === false ? 'Failed' : 'Тест'}
+          </button>
+          <button className="modal__btn modal__btn--cancel" onClick={onClose}>Отмена</button>
         </div>
       </div>
     </div>

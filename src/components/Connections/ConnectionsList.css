@@ -1,7 +1,7 @@
 .conn-list {
   width: 320px;
   min-width: 280px;
-  height: 800px;
+  height: 830px;
   flex-shrink: 0;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -33,10 +33,10 @@
 .conn-list__th {
   padding: 9px 44px;
   text-align: left;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-muted);
-  background: var(--color-table-header);
+  background: var(--color-table-header-bg);
   border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   user-select: none;
@@ -83,6 +83,18 @@
 .conn-list__tr--active .conn-list__td {
   color: var(--color-primary);
   font-weight: 600;
+}
+
+.conn-list__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-left: 10px;
 }
 
 .conn-list__td {

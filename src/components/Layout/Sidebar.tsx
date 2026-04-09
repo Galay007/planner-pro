@@ -43,7 +43,7 @@ export default function Sidebar() {
             }
             title={collapsed ? item.label : undefined}
           >
-            <item.icon size={23}  />
+            <item.icon size={22}  />
             <span className="sidebar__label">{item.label}</span>
           </NavLink>
         ))}

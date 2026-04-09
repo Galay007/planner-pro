@@ -1,4 +1,5 @@
 import './ConnectionsToolbar.css';
+import { PlugZap, Plus, Minus } from 'lucide-react';
 
 interface Props {
   onAdd: () => void;
@@ -19,23 +20,23 @@ export default function ConnectionsToolbar({
     <div className="toolbar">
       <div className="toolbar__group">
         <button className="toolbar__btn toolbar__btn--primary" title="Добавить подключение" onClick={onAdd}>
-          +
+          <Plus size={15} strokeWidth={1.5} />
         </button>
         <button
-          className="toolbar__btn toolbar__btn--danger"
-          title={selectedName ? `Удалить ${selectedName}` : 'Выберите подключение'}
+          className="toolbar__btn toolbar__btn--primary"
+          title={selectedName ? `Удалить` : 'Выберите подключение'}
           disabled={!selectedName || deleting}
           onClick={onDelete}
         >
-          −
+          <Minus size={15} strokeWidth={1.9} />
         </button>
         <button
-          className="toolbar__btn toolbar__btn--test"
-          title={selectedName ? `Тест ${selectedName}` : 'Выберите подключение'}
+          className="toolbar__btn toolbar__btn--primary"
+          title={selectedName ? `Тест подключения` : 'Выберите подключение'}
           disabled={!selectedName || testing}
           onClick={onTest}
         >
-          ⚡
+          <PlugZap size={20} strokeWidth={1.2} />
         </button>
       </div>
 
@@ -50,9 +51,9 @@ export default function ConnectionsToolbar({
         ↻
       </button>
 
-      {selectedName && (
+      {/* {selectedName && (
         <span className="toolbar__selected-hint">Выбрано: {selectedName}</span>
-      )}
+      )} */}
     </div>
   );
 }

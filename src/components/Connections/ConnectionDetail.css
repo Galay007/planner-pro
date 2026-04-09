@@ -1,9 +1,9 @@
 .conn-detail {
-  flex: 0.4;
+  flex: 0.3;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-toolbar-bg);
-  height: 800px;
+  height: 400px;
   overflow: auto;
 }
 
@@ -17,11 +17,11 @@
 
 .conn-detail__header {
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text);
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-table-header);
+  background: var(--color-table-header-bg);
 }
 
 .conn-detail__table {
@@ -35,11 +35,10 @@
 
 .conn-detail__label {
   padding: 10px 16px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   white-space: nowrap;
   width: 140px;
 }
@@ -48,5 +47,6 @@
   padding: 10px 16px;
   font-size: 13px;
   color: var(--color-text);
-  font-family: monospace;
+  font-family: 'Segoe UI', sans-serif;
+  overflow-wrap: anywhere;
 }

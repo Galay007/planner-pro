@@ -18,6 +18,7 @@ export default function ConnectionsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testPassed, setTestPassed] = useState(false);
   const [search, setSearch] = useState('');
   const [serverMessage, setServerMessage] = useState<ServerMessage | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -56,6 +57,7 @@ export default function ConnectionsPage() {
   function handleSelect(name: string) {
     setSelectedName(name);
     setDetail(connections.find((c) => c.name === name) ?? null);
+    setTestPassed(false);
   }
 
   async function handleDelete() {
@@ -79,8 +81,10 @@ export default function ConnectionsPage() {
     if (!selectedName || !detail) return;
     setTesting(true);
     try {
-      const result = await testConnection({ ...detail });
-      pushMessage({ status: result.status, text: `Тест: ${selectedName}`, detail: result.detail, ok: result.status === 200 });
+      const result = await testConnection(detail);
+      const ok = result.status === 200;
+      pushMessage({ status: result.status, text: `Тест: ${selectedName}`, detail: result.detail, ok });
+      setTestPassed(ok);
     } catch (e) {
       const err = parseApiError(e);
       pushMessage({ status: err.status, text: 'Ошибка теста', detail: err.detail, ok: false });
@@ -116,7 +120,7 @@ export default function ConnectionsPage() {
           <span className="search-icon">🔍</span>
           <input
             className="search-input"
-            placeholder="Поиск по имени…"
+            placeholder="Поиск…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -125,11 +129,11 @@ export default function ConnectionsPage() {
           <button className="btn-reset" onClick={() => setSearch('')}>Сбросить</button>
         )}
         {serverMessage && (
-          <div className={`server-msg server-msg--${serverMessage.ok ? 'ok' : 'err'}`}>
-            <span className="server-msg__status">{serverMessage.status}</span>
-            <span className="server-msg__text">{serverMessage.text}</span>
-            {serverMessage.detail && (
-              <span className="server-msg__detail">— {serverMessage.detail}</span>
+          <div className={`server-msg server-msg--${serverMessage.ok ? '' : 'err'}`}>
+            {/* <span className="server-msg__status">{serverMessage.status}</span>
+            <span className="server-msg__text">{serverMessage.text}</span> */}
+            {!serverMessage.ok && serverMessage.detail && (
+              <span>{serverMessage.status} — {serverMessage.detail}</span>
             )}
           </div>
         )}
@@ -144,6 +148,7 @@ export default function ConnectionsPage() {
             selectedName={selectedName}
             onSelect={handleSelect}
             search={search}
+            testPassedName={testPassed ? selectedName : null}
           />
           <ConnectionDetail connection={detail} loading={false} />
         </div>

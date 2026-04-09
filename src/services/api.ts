@@ -76,7 +76,7 @@ export async function deleteConnection(name: string): Promise<ApiResult> {
 }
 
 export async function testConnection(body: Partial<ConnectionIn>): Promise<ApiResult> {
-  const response = await api.post('/connections/test', body);
+  const response = await api.post(`/connections/test`, body);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 

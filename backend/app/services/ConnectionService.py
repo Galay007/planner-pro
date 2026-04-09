@@ -4,6 +4,9 @@ from ..models.ConnectionModel import Connection
 from .TaskRunningService import TaskRunningService
 from typing import List
 from .SseService import send_to_client_update
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ConnectionService:
     connectionRepositoryAPI: ConnectionRepositoryAPI
@@ -19,7 +22,7 @@ class ConnectionService:
     def create(self,
         name: str,
         conn_type: str,
-        host: str,
+        host: str | None,
         port: int | None,
         db_name: str | None,
         login: str | None,
@@ -52,5 +55,34 @@ class ConnectionService:
 
     def get_all(self) -> List[Connection]:
         return self.connectionRepositoryAPI.get_all()
+    
+    def test_existing_connection(self, test_connection: Connection):
+        return test_connection.test_db_connection()
+
+
+    def test_new_connection(self,
+        name: str,
+        conn_type: str,
+        host: str | None,
+        port: int | None,
+        db_name: str | None,
+        login: str | None,
+        password: str | None,
+        db_path: str | None
+        ) -> Connection:
+        
+        test_connection = Connection(
+            name=name,
+            conn_type=conn_type,
+            host=host,
+            port=port,
+            db_name=db_name,
+            login=login,
+            db_path=db_path
+        )
+        test_connection.password = password  # setter сам зашифрует пароль
+
+        return test_connection.test_db_connection()
+
     
 

@@ -124,18 +124,39 @@
 }
 
 .modal__btn--test {
-  color: var(--color-warning);
+  color: var(--color-text-muted);
   background: transparent;
   border: 1px solid var(--color-border);
+  width: 78px;
 }
 
 .modal__btn--test:hover:not(:disabled) {
-  background: #fef9c3;
+  background: var(--color-table-row-hover);
 }
 
 .modal__btn--test:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.modal__btn--test-fail {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.modal__btn--test-fail:hover:not(:disabled) {
+  background: var(--color-danger-light);
+}
+
+.modal__btn--test-ok {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.modal__btn--test-ok:hover:not(:disabled) {
+  background: var(--color-success-light);
 }
 
 .modal__btn--save {
