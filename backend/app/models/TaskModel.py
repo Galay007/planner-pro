@@ -5,6 +5,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
 from enum import Enum 
+from cronsim import CronSim
+import logging
+from pathlib import Path
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .TaskHistModel import TaskHist
@@ -41,8 +47,6 @@ class Task(Base):
     added_running_dt = Column(DateTime(timezone=False), nullable=True )
     change_dt = Column(DateTime(timezone=False), nullable=False )
 
-    
-
     task_props: Mapped["TaskProperty"] = relationship(back_populates="task", cascade="all, delete-orphan", lazy="select", passive_deletes=True )
 
     def return_id_uid(self):
@@ -50,3 +54,136 @@ class Task(Base):
                 "task_id": self.task_id.__str__(),
                 "task_uid": self.task_uid.__str__()
             }
+
+    def is_cron_valid(self, expr: str, task_id: int) -> bool:
+        try:
+            CronSim(expr, datetime.now())
+            return True
+        except Exception as e:
+            logger.error(f'Task id {task_id} has invalid cron expression {expr}')
+            return False
+  
+    def is_path_valid(self, path: str, task_id: int) -> bool:     
+        try:
+            path_folder = Path(path)
+            if path_folder.exists():
+                return True
+            else:
+                return False
+        except Exception:
+            logger.error(f'Task id {task_id} has invalid path storage {path}')
+            return False
+
+    def get_today_executions(self, cron_expr: str, today_dt: datetime) -> list[datetime]:
+        cs = CronSim(cron_expr, today_dt)
+
+        today_executions = []
+        for _ in range(1440):  # 1440 минут — 24 часа
+            dt = next(cs)
+
+            if dt.date() == today_dt.date():
+                today_executions.append(dt)
+
+        return today_executions
+  
+    @property
+    def manual_execute_params(self):
+        return {
+            "valid_cron": self.is_cron(),
+            "valid_storage_path": self.is_storage_path(),
+            "valid_connection": self.is_connection()
+        }
+    
+    @property
+    def depended_execute_params(self):
+        return {
+            "valid_storage_path": self.is_storage_path(),
+            "valid_connection": self.is_connection()
+        }
+
+    @property
+    def schedule_execute_params(self):
+        return {
+            "valid_dates": self.is_dates(),
+            "valid_now_dates": self.is_in_now_dates(),
+            "valid_no_past": self.is_no_past(),
+            "valid_no_depend": self.is_no_depend(),
+            "valid_cron": self.is_cron(),
+            "valid_storage_path": self.is_storage_path(),
+            "valid_connection": self.is_connection()
+        }
+
+    def is_dates(self) -> Boolean:
+        try:
+            return True if self.task_props.until_dt >= self.task_props.from_dt else False
+        except Exception:
+            return False
+    
+    def is_no_past(self) -> Boolean:
+        current_dt = datetime.now()
+        try:
+            return True if self.task_props.from_dt >= self.task_props.from_dt else False
+        except Exception:
+            return False
+        
+    def is_in_now_dates(self) -> Boolean:
+        try:
+            current_dt = datetime.now()
+            return True if self.task_props.from_dt <= current_dt and self.task_props.until_dt >= current_dt else False
+        except Exception:
+            return False
+    
+    def is_in_future(self) -> Boolean:
+        try:
+            current_dt = datetime.now()
+            return True if self.task_props.until_dt > current_dt and self.task_props.from_dt > current_dt else False
+        except Exception:
+            return False  
+        
+    def is_no_depend(self) -> Boolean:
+        try:
+            return True if self.task_deps_id is None else False
+        except Exception:
+            return False
+            
+    def is_depend(self) -> Boolean:
+        try:
+            return True if self.task_deps_id is not None else False
+        except Exception:
+            return False
+    
+    def is_added(self) -> Boolean:
+        try:
+            return True if self.in_running == InRunningEnum.ADDED  else False
+        except Exception:
+            return False 
+    
+    def is_cleared(self) -> Boolean:
+        try:
+            return True if self.in_running == InRunningEnum.CLEARED  else False
+        except Exception:
+            return False
+        
+    def is_to_clean(self) -> Boolean:
+        try:
+            return True if self.in_running == InRunningEnum.TO_CLEAN  else False
+        except Exception:
+            return False
+    
+    def is_cron(self) -> Boolean:
+        try:
+            return self.is_cron_valid(self.task_props.cron_expression, self.task_id)
+        except Exception:
+            return False   
+        
+    def is_storage_path(self) -> Boolean:
+        try:
+            return self.is_path_valid(self.task_props.storage_path, self.task_id)
+        except Exception:
+            return False
+        
+    def is_connection(self) -> Boolean:
+        try:
+            return True if self.task_props.connection_id is not None else False
+        except Exception:
+            return False

@@ -22,8 +22,8 @@ class TaskPropertyService:
 
     def create(self,
         task_id: int,
-        from_dt: datetime,
-        until_dt: datetime,
+        from_dt: datetime | None,
+        until_dt: datetime | None,
         connection_id: int,
         cron_expression: str | None,
         task_type: str,

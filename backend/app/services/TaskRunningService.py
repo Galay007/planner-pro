@@ -36,10 +36,6 @@ class TaskRunningService:
         task.change_dt = DateTimeUtils.local_with_micr()
         self.taskRepository.update_task(task)
 
-    def has_parent(self, task_deps_id: int) -> bool:
-        task = self.taskRepository.get_task_by_task_id_short(task_deps_id)
-        return True if task else False
-
     def validate_cheduled_tasks_for_adding(self, current_dt: datetime) -> list[Task]:
         tasks = self.taskRepository.get_all_tasks()
         validated_tasks_for_adding = []
@@ -49,34 +45,21 @@ class TaskRunningService:
                 logger.debug(f'Task id {task.task_id} is now running')
                 continue
 
-            if task.task_props is None:
-                if task.on_control == 'on': 
-                    logger.warning(f'Task id {task.task_id} has no properties to be "ON"')
-                    self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
-                continue
-
-            valid_dates = True if task.task_props.from_dt <= current_dt and task.task_props.until_dt >= current_dt else False
-            valid_cron = self.is_cron_valid(task.task_props.cron_expression, task.task_id)
-            valid_is_added = True if task.in_running == InRunningEnum.ADDED  else False
-            valid_to_clean = True if task.in_running == InRunningEnum.TO_CLEAN  else False
-            valid_storage_path = self.is_path_valid(task.task_props.storage_path, task.task_id)
-            valid_in_future = True if task.task_props.until_dt >= current_dt else False
-            valid_connection = True if task.task_props.connection_id is not None else False
-
             if task.on_control == "on" and task.task_deps_id is None:
-                if  valid_dates and valid_cron and not valid_to_clean and not valid_is_added and valid_connection and valid_storage_path \
-                    or (valid_is_added and
-                                 task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
+                if  task.is_cleared() and all(task.schedule_execute_params.values()) \
+                    or (task.is_added() and task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
            
-                    validated_tasks_for_adding.append(task) 
-                        
+                    validated_tasks_for_adding.append(task)                  
 
-                elif valid_in_future and valid_cron and not valid_is_added  and valid_storage_path and valid_connection:
+                elif task.is_in_future() and not task.is_added() and all(task.manual_execute_params.values()) :
                     pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
 
-                elif not valid_dates or not valid_cron or valid_to_clean or not valid_storage_path or not valid_connection:
+                elif task.is_to_clean() or not all(task.schedule_execute_params.values()):
+                    first_key_false = 'valid_to_clean'
+                    if not all(task.schedule_execute_params.values()):
+                       first_key_false = next((key for key, value in task.schedule_execute_params.items() if not value), None)
 
-                    logger.warning(f'Task id {task.task_id} can not be "ON" due to invalid params for running')
+                    logger.warning(f'Task id {task.task_id} can not be "ON" due to not {first_key_false}')
                     task.added_running_dt = None
                     self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
                     self.update_in_running_status(task, InRunningEnum.TO_CLEAN)
@@ -84,10 +67,10 @@ class TaskRunningService:
 
             if task.on_control == "on" and task.task_deps_id is not None:
 
-                valid_parent = True if self.has_parent(task.task_deps_id) else False
-
-                if not valid_parent or not valid_in_future or valid_cron or not valid_storage_path or not valid_connection: # если valid_cron == True, то это ошибка для depended task
-                    logger.warning(f'Depended task id {task.task_id} can not be "ON" due to invalid params')
+                if not all(task.depended_execute_params.values()): # если valid_cron == True, то это ошибка для depended task
+                    first_key_false = next((key for key, value in task.depended_execute_params.items() if not value), None)
+                    
+                    logger.warning(f'Depended task id {task.task_id} can not be "ON" due to not {first_key_false}')
                     task.added_running_dt = None
                     self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)
                     
@@ -98,10 +81,8 @@ class TaskRunningService:
         tasks = self.taskRepository.get_all_tasks()
 
         for task in tasks:
-            valid_is_cleared = True if task.in_running == InRunningEnum.CLEARED  else False
-            valid_is_not_active = True if task.status == TaskStatusEnum.NOT_ACTIVE  else False
 
-            if task.on_control == "off" and task.task_deps_id is None and (not valid_is_cleared or not valid_is_not_active):
+            if task.on_control == "off" and task.task_deps_id is None and task.is_added:
                 self.taskRunningRepository.delete_by_task_id(task.task_id, current_dt)
                 task.added_running_dt = None
                 self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)

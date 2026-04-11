@@ -6,8 +6,8 @@ from datetime import datetime
 
 class TaskPropertyCreate(BaseModel):
     task_id: int
-    from_dt: datetime
-    until_dt: datetime
+    from_dt: Optional[datetime] = None
+    until_dt: Optional[datetime] = None
     connection_id: int
     cron_expression: Optional[str] = None
     task_type: str

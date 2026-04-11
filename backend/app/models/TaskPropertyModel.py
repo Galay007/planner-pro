@@ -13,8 +13,8 @@ class TaskProperty(Base):
     __tablename__ = 'task_properties'
 
     task_id = Column(BigInteger, ForeignKey('tasks.task_id', ondelete="CASCADE"), nullable=False, primary_key=True, autoincrement=False, info={'passive_deletes': True})
-    from_dt = Column(DateTime(timezone=False), nullable=False)
-    until_dt = Column(DateTime(timezone=False),nullable=False)
+    from_dt = Column(DateTime(timezone=False), nullable=True)
+    until_dt = Column(DateTime(timezone=False),nullable=True)
     connection_id = Column(Integer, ForeignKey('connections.id', ondelete='SET NULL'), nullable=True)
     cron_expression = Column(String, nullable=True)
     task_type = Column(String, nullable=False)
