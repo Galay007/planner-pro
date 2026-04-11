@@ -28,31 +28,21 @@ SessionLocal = sessionmaker(
     autocommit=False, 
     autoflush=False 
 )
-# db_session = scoped_session(SessionLocal)
-
-
-
-# @contextmanager
-# def get_connection():
-#     with engine.begin() as connection:
-#         print(f"🟢 Gave connection")
-#         yield connection
-
 
 def get_orm_connection():
 
     try:
-        print(f"🟢 Given db connection from pool")
+        logger.info(f"🟢 Given db connection from pool")
         db_session = SessionLocal()
         yield db_session
         db_session.commit()
     except Exception as e:
-        logging.error(f"🚨 DB ROLLBACK: {type(e).__name__}")
+        logger.error(f"🚨 DB ROLLBACK: {type(e).__name__}")
         # print({str(e).split('\n')[0]})
         db_session.rollback()
         raise
     finally:
-        print("🔒 Connection from pool to DB removed")
+        logger.info("🔒 Connection from pool to DB removed")
         db_session.close()
 
 def init_metadata_db():

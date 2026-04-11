@@ -24,8 +24,8 @@
 }
 
 .scheduler__sse-indicator--error {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
+  background: var(--color-red-light);
+  color: var(--color-red);
 }
 
 .scheduler__sse-indicator--connecting {
@@ -59,9 +59,9 @@
 }
 
 .server-msg--err {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  background: var(--color-red-light);
+  color: var(--color-red);
+  border: 1px solid var(--color-red);
 }
 
 .server-msg__status {
@@ -130,5 +130,5 @@
 }
 
 .scheduler__state--error {
-  color: var(--color-danger);
+  color: var(--color-red);
 }

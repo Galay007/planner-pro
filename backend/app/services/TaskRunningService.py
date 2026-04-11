@@ -67,7 +67,7 @@ class TaskRunningService:
 
             if task.on_control == "on" and task.task_deps_id is not None:
 
-                if not all(task.depended_execute_params.values()): # если valid_cron == True, то это ошибка для depended task
+                if not all(task.depended_execute_params.values()):
                     first_key_false = next((key for key, value in task.depended_execute_params.items() if not value), None)
                     
                     logger.warning(f'Depended task id {task.task_id} can not be "ON" due to not {first_key_false}')
@@ -82,7 +82,7 @@ class TaskRunningService:
 
         for task in tasks:
 
-            if task.on_control == "off" and task.task_deps_id is None and task.is_added:
+            if task.on_control == "off" and task.task_deps_id is None and task.is_added():
                 self.taskRunningRepository.delete_by_task_id(task.task_id, current_dt)
                 task.added_running_dt = None
                 self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)

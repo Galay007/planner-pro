@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import type { TaskOut, TaskRunning, ServerMessage } from '../../types';
+import type { TaskOut, ServerMessage } from '../../types';
 import { startTask, stopTask, parseApiError } from '../../services/api';
 import './TaskTable.css';
 
 interface Props {
   tasks: TaskOut[];
-  taskRunnings: TaskRunning[];
   selectedId: number | null;
   onSelect: (id: number | null) => void;
   onRefresh: () => void;
@@ -15,10 +14,9 @@ interface Props {
 type SortKey = keyof TaskOut;
 type SortDir = 'asc' | 'desc';
 
-export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, onServerMessage }: Props) {
+export default function TaskTable({ tasks, selectedId, onSelect, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const runningIds = new Set(taskRunnings.map((r) => r.task_id));
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -34,7 +32,7 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
     const bv = b[sortKey] ?? '';
     if (av < bv) return sortDir === 'asc' ? -1 : 1;
     if (av > bv) return sortDir === 'asc' ? 1 : -1;
-    return 0;
+    return a.task_id - b.task_id;
   });
 
   async function handleControl(task: TaskOut) {
@@ -73,14 +71,15 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
         <thead>
           <tr>
             <ColHeader label="ID" col="task_id" />
-            <th className="table__th">Управление</th>
+            <ColHeader label="Управление" col="on_control" />
             <ColHeader label="Имя задачи" col="task_name" />
             <ColHeader label="Группа" col="task_group" />
             <ColHeader label="Автор" col="owner" />
             <ColHeader label="Статус" col="status" />
+            <ColHeader label="Расписание" col="schedule" />
             <ColHeader label="След. запуск" col="schedule" />
             <ColHeader label="Связь с ID" col="task_deps_id" />
-            <th className="table__th">Уведомл.</th>
+            <ColHeader label="Уведомл." col="notifications" />
             <th className="table__th">Логи</th>
             <th className="table__th">Комментарий</th>
           </tr>
@@ -95,8 +94,6 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
               <TaskRow
                 key={task.task_id}
                 task={task}
-                isRunning={runningIds.has(task.task_id)}
-
                 isSelected={selectedId === task.task_id}
                 onControl={handleControl}
                 onSelect={onSelect}
@@ -111,17 +108,17 @@ export default function TaskTable({ tasks, taskRunnings, selectedId, onSelect, o
 
 interface RowProps {
   task: TaskOut;
-  isRunning: boolean;
   isSelected: boolean;
   onControl: (task: TaskOut) => void;
   onSelect: (id: number | null) => void;
 }
 
-function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps) {
+function TaskRow({ task, isSelected, onControl, onSelect }: RowProps) {
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
 
   const statusClass =
-    task.status === 'running' ? 'status--running'
+    task.status === 'active' ? 'status--active'
+    : task.status === 'running' ? 'status--running'
     : task.status === 'error' ? 'status--error'
     : 'status--stopped';
 
@@ -132,11 +129,9 @@ function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps)
     : task.status;
 
   const isOn = task.on_control === 'on';
-  // Если optimisticOn задан — показываем его, иначе реальное значение из props
   const displayOn = optimisticOn !== null ? optimisticOn : isOn;
 
   function handleRowClick(e: React.MouseEvent) {
-    // Don't deselect when clicking interactive elements
     if ((e.target as HTMLElement).closest('button, input, a')) return;
     onSelect(isSelected ? null : task.task_id);
   }
@@ -145,7 +140,6 @@ function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps)
     <tr
       className={[
         'table__row',
-        isRunning ? 'table__row--running' : '',
         isSelected ? 'table__row--selected' : '',
       ].filter(Boolean).join(' ')}
       onClick={handleRowClick}
@@ -155,13 +149,10 @@ function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps)
       <td className="table__td table__td--center table__td--controls">
         <span
           className="toggle-wrap"
-          onClick={(e) => {
-            const wrap = e.currentTarget;
-            if (wrap.classList.contains('toggle-wrap--waiting')) return;
-            wrap.classList.add('toggle-wrap--waiting');
+          onClick={() => {
+            if (optimisticOn !== null) return;
             setOptimisticOn(!isOn);
             setTimeout(() => {
-              wrap.classList.remove('toggle-wrap--waiting');
               setOptimisticOn(null);
             }, 500);
             onControl(task);
@@ -177,16 +168,17 @@ function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps)
       </td>
 
       <td className="table__td table__td--center">{task.task_name}</td>
-      <td className="table__td table__td--center">{task.task_group ?? <span className="muted">—</span>}</td>
+      <td className="table__td table__td--center">{task.task_group ?? <span className="muted">-</span>}</td>
       <td className="table__td table__td--center">{task.owner}</td>
 
       <td className="table__td table__td--center">
         <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
       </td>
 
-      <td className="table__td table__td--center">{task.schedule ?? <span className="muted">—</span>}</td>
+      <td className="table__td table__td--center">{task.schedule ?? <span className="muted">-</span>}</td>
+      <td className="table__td table__td--center">{task.next_run ?? <span className="muted">-</span>}</td>
       <td className="table__td table__td--center">{task.task_deps_id ?? 
-        <span className="muted">—</span>}</td>
+        <span className="muted">-</span>}</td>
 
       <td className="table__td table__td--center">
         <input type="checkbox" checked={task.notifications} readOnly />
@@ -196,7 +188,7 @@ function TaskRow({ task, isRunning, isSelected, onControl, onSelect }: RowProps)
         <button className="link-btn">Открыть</button>
       </td>
 
-      <td className="table__td">{task.comment ?? <span className="muted">—</span>}</td>
+      <td className="table__td">{task.comment ?? <span className="muted"></span>}</td>
     </tr>
   );
 }

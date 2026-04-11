@@ -50,7 +50,7 @@ export default function ConnectionDetail({ connection, loading }: Props) {
           {fields.map((key) => (
             <tr key={key} className="conn-detail__row">
               <td className="conn-detail__label">{LABELS[key]}</td>
-              <td className="conn-detail__value">{connection[key] || '—'}</td>
+              <td className="conn-detail__value">{connection[key] || '-'}</td>
             </tr>
           ))}
         </tbody>

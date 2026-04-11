@@ -26,7 +26,7 @@ see_manager: SSEManager
 
 logging.basicConfig(
     level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S"
 )
 

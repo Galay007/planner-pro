@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { connectSSE, disconnectSSE } from '../../services/sse';
 import { getTasks, deleteTask, getMaxTaskId, createTask, parseApiError } from '../../services/api';
-import type { TaskOut, TaskRunning, ServerMessage } from '../../types';
+import type { TaskOut, ServerMessage } from '../../types';
 import TaskToolbar from './TaskToolbar';
 import TaskTable from './TaskTable';
 import './SchedulerPage.css';
+import {Logger} from '../../utils/logger'
 
 export default function SchedulerPage() {
   const [tasks, setTasks] = useState<TaskOut[]>([]);
-  const [taskRunnings, setTaskRunnings] = useState<TaskRunning[]>([]);
   const [search, setSearch] = useState('');
   const [sseStatus, setSseStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function SchedulerPage() {
 
   const pushMessage = useCallback((msg: ServerMessage) => {
     setServerMessage(msg);
-    setTimeout(() => setServerMessage(null), 4000);
+    setTimeout(() => setServerMessage(null), 5000);
   }, []);
 
   function fetchTasks(isRefresh = false) {
@@ -36,7 +36,7 @@ export default function SchedulerPage() {
     getTasks()
       .then(({ data, status }) => {
         setTasks(data);
-        console.log(data)
+        Logger.info('Received get task request', data)
         pushMessage({ status, text: 'Все OK', ok: true });
       })
       .catch((e) => {
@@ -58,8 +58,6 @@ export default function SchedulerPage() {
     connectSSE({
       onOpen: () => setSseStatus('connected'),
       onError: () => setSseStatus('error'),
-      onTasks: (data) => setTasks(data),
-      onTaskRunnings: (data) => setTaskRunnings(data),
       onRefresh: () => fetchTasks(true)
     });
     return () => disconnectSSE();
@@ -71,7 +69,7 @@ export default function SchedulerPage() {
       const maxId = await getMaxTaskId();
       const { status } = await createTask(maxId + 1);
       pushMessage({ status, text: 'Задача создана', ok: true });
-      //fetchTasks(true); через sse
+      //fetchTasks(true); теперь через sse
     } catch (e) {
       const { status, detail } = parseApiError(e);
       pushMessage({ status, text: 'Ошибка создания задачи', detail, ok: false });
@@ -88,7 +86,7 @@ export default function SchedulerPage() {
       const { status } = await deleteTask(selectedId);
       pushMessage({ status, text: `Задача #${selectedId} удалена`, ok: true });
       setSelectedId(null);
-      //fetchTasks(true); через sse
+      //fetchTasks(true); теперь через sse
     } catch (e) {
       const { status, detail } = parseApiError(e);
       pushMessage({ status, text: 'Ошибка удаления', detail, ok: false });
@@ -105,6 +103,8 @@ export default function SchedulerPage() {
       t.on_control.toLowerCase().includes(q) ||
       t.task_name.toLowerCase().includes(q) ||
       (t.task_group ?? '').toLowerCase().includes(q) ||
+      (t.schedule ?? '').toLowerCase().includes(q) ||
+      (t.next_run ?? '').toLowerCase().includes(q) ||
       t.owner.toLowerCase().includes(q) ||
       t.status.toLowerCase().includes(q)
     );
@@ -151,7 +151,7 @@ export default function SchedulerPage() {
             {/* <span className="server-msg__status">{serverMessage.status}</span>
             <span className="server-msg__text">{serverMessage.text}</span> */}
             {!serverMessage.ok && serverMessage.detail && (
-              <span>{serverMessage.status} — {serverMessage.detail}</span>
+              <span>{serverMessage.status} - {serverMessage.detail}</span>
             )}
           </div>
         )}
@@ -163,7 +163,6 @@ export default function SchedulerPage() {
       {!loading && (
         <TaskTable
           tasks={filteredTasks}
-          taskRunnings={taskRunnings}
           selectedId={selectedId}
           onSelect={setSelectedId}
           onRefresh={() => fetchTasks(true)}

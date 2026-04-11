@@ -5,21 +5,12 @@ export interface TaskOut {
   owner: string;            
   task_group: string | null; 
   schedule: string | null;  
+  next_run: string | null;
   task_deps_id: number | null; 
   status: string;           
   notifications: boolean;   
   comment: string | null;   
 }
-
-// TaskRunning entity from task_runnings SSE event — structure TBD
-export interface TaskRunning {
-  task_id: number;
-  started_at: string;
-  status: string;
-}
-
-export type TasksPayload = TaskOut[];
-export type TaskRunningsPayload = TaskRunning[];
 
 // Connections
 export type ConnType = 'postgresql' | 'mysql' | 'mariadb' | 'mssql' | 'oracle' | 'sqlite' | 'teradata';

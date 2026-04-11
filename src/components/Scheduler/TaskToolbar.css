@@ -41,16 +41,16 @@
   background: var(--color-primary-light);
 }
 
-.toolbar__btn--danger {
-  color: var(--color-danger);
+.toolbar__btn--red {
+  color: var(--color-red);
   font-weight: 700;
 }
 
-.toolbar__btn--danger:hover:not(:disabled) {
-  background: var(--color-danger-light);
+.toolbar__btn--red:hover:not(:disabled) {
+  background: var(--color-red-light);
 }
 
-.toolbar__btn--danger:disabled {
+.toolbar__btn--red:disabled {
   color: var(--color-text-muted);
   opacity: 0.4;
   cursor: not-allowed;

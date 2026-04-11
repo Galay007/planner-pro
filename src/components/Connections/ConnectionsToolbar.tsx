@@ -19,7 +19,7 @@ export default function ConnectionsToolbar({
   return (
     <div className="toolbar">
       <div className="toolbar__group">
-        <button className="toolbar__btn toolbar__btn--primary" title="Добавить подключение" onClick={onAdd}>
+        <button className="toolbar__btn toolbar__btn--primary" title="Добавить" onClick={onAdd}>
           <Plus size={15} strokeWidth={1.5} />
         </button>
         <button
@@ -32,7 +32,7 @@ export default function ConnectionsToolbar({
         </button>
         <button
           className="toolbar__btn toolbar__btn--primary"
-          title={selectedName ? `Тест подключения` : 'Выберите подключение'}
+          title={selectedName ? `Тест` : 'Выберите подключение'}
           disabled={!selectedName || testing}
           onClick={onTest}
         >
@@ -44,7 +44,7 @@ export default function ConnectionsToolbar({
 
       <button
         className={`toolbar__btn toolbar__btn--refresh${refreshing ? ' toolbar__btn--spinning' : ''}`}
-        title="Обновить список"
+        title="Обновить"
         onClick={onRefresh}
         disabled={refreshing}
       >

@@ -87,14 +87,26 @@
 
 .conn-list__dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--color-success);
   margin-right: 6px;
   vertical-align: middle;
   flex-shrink: 0;
-  margin-left: 10px;
+  margin-left: 15px;
+}
+
+.conn-list__dot_red {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-red);
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+  margin-left: 15px;
 }
 
 .conn-list__td {

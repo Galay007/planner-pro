@@ -2,6 +2,9 @@ import json
 from typing import Dict, Optional
 from ..utils.SSEManager import SSEManager
 from anyio import from_thread
+import logging
+
+logger = logging.getLogger(__name__)
 
 sse_manager: Optional[SSEManager] = None
 
@@ -15,7 +18,7 @@ def send_to_client_update(data_dict: Optional[Dict] = None, event_type: Optional
         return
     data = data_dict or {} 
 
-    print('Sent sse trigger')
+    logger.info(f'Sent sse event {event_type} to client')
 
     if event_type is None:
         from_thread.run(sent_only_data, data)

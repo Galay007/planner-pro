@@ -6,18 +6,23 @@ from typing import List
 from datetime import datetime
 from .TaskRunningService import TaskRunningService
 from .SseService import send_to_client_update
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
 class TaskHistService:
     taskHistRepository: TaskHistRepository
     taskRunningService: TaskRunningService
+    db: Session
 
     def __init__(
         self, db: Session
     ) -> None:
         self.taskHistRepository = TaskHistRepository(db) 
-        self.taskRunningService =  TaskRunningService(db)     
+        self.taskRunningService =  TaskRunningService(db)    
+        self.db = db 
     
 
     def create(self,
@@ -52,6 +57,7 @@ class TaskHistService:
     def update(self, taskHist: TaskHist) -> TaskHist:
         self.taskRunningService.refresh_runnings()       
         task_hist = self.taskHistRepository.update(taskHist)
+        self.db.commit()
         send_to_client_update(event_type="task_update")
         return task_hist
     

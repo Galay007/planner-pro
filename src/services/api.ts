@@ -20,6 +20,7 @@ function extractDetail(data: unknown): string | undefined {
   return undefined;
 }
 
+// Tasks
 export async function getTasks(): Promise<{ data: TaskOut[] } & ApiResult> {
   const response = await api.get<TaskOut[]>('/tasks');
   return { data: response.data, status: response.status };

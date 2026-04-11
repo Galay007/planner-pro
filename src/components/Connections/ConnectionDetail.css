@@ -36,11 +36,12 @@
 .conn-detail__label {
   padding: 10px 16px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text);
   text-transform: uppercase;
   white-space: nowrap;
   width: 140px;
+  font-family: 'Roboto', sans-serif;
 }
 
 .conn-detail__value {

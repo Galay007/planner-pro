@@ -12,7 +12,7 @@ interface Props {
   selectedName: string | null;
   onSelect: (name: string) => void;
   search: string;
-  testPassedName: string | null;
+  testPassed: boolean | null;
 }
 
 const COLS = (
@@ -22,7 +22,7 @@ const COLS = (
   </colgroup>
 );
 
-export default function ConnectionsList({ connections, selectedName, onSelect, search, testPassedName }: Props) {
+export default function ConnectionsList({ connections, selectedName, onSelect, search, testPassed }: Props) {
   const [sortCol, setSortCol] = useState<'name' | 'conn_type' | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -79,7 +79,8 @@ export default function ConnectionsList({ connections, selectedName, onSelect, s
                 >
                   <td className="conn-list__td">
                     {c.name}
-                    {testPassedName === c.name && <span className="conn-list__dot" />}
+                    {testPassed && <span className={`${selectedName === c.name ? 'conn-list__dot' : ''}`}/>}
+                    {testPassed === false ? <span className={`${selectedName === c.name ? 'conn-list__dot_red' : ''}`}/> : ''}
                   </td>
                   <td className="conn-list__td">{c.conn_type}</td>
                 </tr>

@@ -58,7 +58,8 @@ class TaskService:
         return int(timestamp)*1000+task_id
     
     def get_all(self) -> List[Task]:
-        return self.taskRepository.get_all()
+        tasks = self.taskRepository.get_all()
+        return tasks
     
     def get_max_task_id(self) -> int:
         return self.taskRepository.get_max_task_id()

@@ -1,7 +1,8 @@
 from fastapi import HTTPException, APIRouter, Depends, status
 from ..models.TaskModel import TaskStatusEnum, InRunningEnum
-from ..schemas.TaskSchema import TaskCreate, TaskOut
+from ..schemas.TaskSchema import TaskCreate, TaskOut, TaskResponse
 from ..services.TaskService import TaskService
+from typing import List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def get_task_by_id(task_id: int, taskService: TaskService = Depends()):
     check_is_none(task, task_id)  
     return task
 
-@TaskRouter.get("")
+@TaskRouter.get("", response_model=List[TaskResponse])
 def get_tasks(taskService: TaskService = Depends()):
     return taskService.get_all()
 
@@ -66,6 +67,11 @@ def get_tasks(task_id: int, taskService: TaskService = Depends()):
         if task.task_props is None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"No task properties")
         task.on_control = 'on'
+
+        valid, message = task.check_valid_before_on_control()
+
+        if not valid:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=message)
     else: 
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to ON while it is already ON")
     
@@ -76,8 +82,7 @@ def get_tasks(task_id: int, taskService: TaskService = Depends()):
     task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
 
-    if task.on_control == 'on':
-       
+    if task.on_control == 'on':    
         task.on_control = 'off'
     else: 
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to OFF while it is already OFF")

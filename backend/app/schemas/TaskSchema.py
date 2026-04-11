@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime
 
 
@@ -20,7 +20,6 @@ class Task(BaseModel):
     on_control: str
     owner: str
     task_group: Optional[str] = None
-    schedule: Optional[str] = None
     task_deps_id: Optional[int] = None
     status: str
     notifications: bool
@@ -36,12 +35,25 @@ class TaskOut(Task):
     on_control: str
     owner: str
     task_group: Optional[str] = None
-    schedule: Optional[str] = None
     task_deps_id: Optional[int] = None
     status: str
     notifications: bool
     comment: Optional[str] = None
  
+class TaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    task_id: int
+    task_name: str
+    on_control: str
+    owner: str
+    schedule: Optional[str] = None
+    next_run: Optional[str] = None
+    task_group: Optional[str] = None
+    task_deps_id: Optional[int] = None
+    status: str
+    notifications: bool
+    comment: Optional[str] = None
+
 
 
 

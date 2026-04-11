@@ -43,7 +43,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
 
       <button
         className={`toolbar__btn toolbar__btn--refresh${refreshing ? ' toolbar__btn--spinning' : ''}`}
-        title="Обновить список задач"
+        title="Обновить"
         onClick={onRefresh}
         disabled={refreshing}
       >

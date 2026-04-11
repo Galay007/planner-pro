@@ -75,16 +75,16 @@
 }
 
 .modal__required {
-  color: var(--color-danger);
+  color: var(--color-red);
   margin-left: 2px;
 }
 
 .modal__input--error {
-  border-color: var(--color-danger);
+  border-color: var(--color-red);
 }
 
 .modal__input--error:focus {
-  border-color: var(--color-danger);
+  border-color: var(--color-red);
 }
 
 .modal__input::placeholder {
@@ -140,13 +140,13 @@
 }
 
 .modal__btn--test-fail {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-  background: var(--color-danger-light);
+  color: var(--color-red);
+  border-color: var(--color-red);
+  background: var(--color-red-light);
 }
 
 .modal__btn--test-fail:hover:not(:disabled) {
-  background: var(--color-danger-light);
+  background: var(--color-red-light);
 }
 
 .modal__btn--test-ok {

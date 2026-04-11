@@ -9,6 +9,8 @@ from cronsim import CronSim
 import logging
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
+from pydantic import computed_field
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,6 @@ class Task(Base):
     on_control = Column(String, nullable=False, default='off')
     owner = Column(String, nullable=False)
     task_group = Column(String, nullable=True)
-    schedule = Column(String, nullable=True)
     task_deps_id = Column(BigInteger,ForeignKey('tasks.task_id', ondelete='SET NULL'),nullable=True)
     status = Column(SQLEnum(TaskStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                     nullable=False, default=TaskStatusEnum.NOT_ACTIVE)
@@ -48,6 +49,27 @@ class Task(Base):
     change_dt = Column(DateTime(timezone=False), nullable=False )
 
     task_props: Mapped["TaskProperty"] = relationship(back_populates="task", cascade="all, delete-orphan", lazy="select", passive_deletes=True )
+
+    @computed_field
+    @property
+    def schedule(self) -> Optional[str]:
+        if self.task_deps_id is None:
+            return self.task_props.cron_expression if self.task_props else None
+        if self.task_deps_id:
+            return f"После id {self.task_deps_id}"
+    
+    @computed_field
+    @property
+    def next_run(self) -> Optional[str]:
+        try:
+            if self.on_control == 'on' and self.task_deps_id is None:
+                cs = CronSim(self.task_props.cron_expression, datetime.now())
+                dt = next(cs)
+                return dt.strftime("%d.%m.%Y %H:%M:%S")
+            return None
+        except Exception:
+            return None
+      
 
     def return_id_uid(self):
             return {
@@ -86,6 +108,29 @@ class Task(Base):
 
         return today_executions
   
+    def check_valid_before_on_control(self) -> tuple[Boolean,str]:
+        if self.task_deps_id is None:
+            if self.is_to_clean() or not all(self.schedule_execute_params.values()):
+                
+                first_key_false = 'valid_to_clean'
+                
+                if not all(self.schedule_execute_params.values()):
+                    first_key_false = next((key for key, value in self.schedule_execute_params.items() if not value), None)
+                
+                message = f'Task_id {self.task_id} can not be "ON" due to not {first_key_false}'
+                logger.warning(message)
+                
+                return False, message
+        else:
+            if not all(self.depended_execute_params.values()):
+                first_key_false = next((key for key, value in self.depended_execute_params.items() if not value), None)
+                message = f'Depended task_id {self.task_id} can not be "ON" due to not {first_key_false}'
+                logger.warning(message)
+                
+                return False, message
+        return True, '' 
+
+
     @property
     def manual_execute_params(self):
         return {
@@ -97,6 +142,7 @@ class Task(Base):
     @property
     def depended_execute_params(self):
         return {
+            "valid_cron": not self.is_cron(),
             "valid_storage_path": self.is_storage_path(),
             "valid_connection": self.is_connection()
         }
