@@ -80,7 +80,7 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
   function handlePortChange(e: React.ChangeEvent<HTMLInputElement>) {
     const val = e.target.value;
     setForm((prev) => ({ ...prev, port: val === '' ? '' : parseInt(val, 10) }));
-    setTestPassed(false);
+    setTestPassed(null);
   }
 
   function handleTypeChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -201,7 +201,8 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
             Сохранить
           </button>
           <button
-            className={`modal__btn modal__btn--test${testPassed === true ? ' modal__btn--test-ok' : testPassed === false ? ' modal__btn--test-fail' : ''}`}
+            className={`modal__btn modal__btn--test${testPassed === true ? ' modal__btn--test-ok' 
+              : testPassed === false ? ' modal__btn--test-fail' : ''}`}
             onClick={handleTest}
             disabled={testing}
           >

@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     global sse_manager, is_shutting_down
 
     init_metadata_db()
+
     sse_manager = SSEManager()
     set_sse_manager(sse_manager)
     
@@ -103,7 +104,7 @@ if __name__ == "__main__":
         "app.main:app", 
         host=host,
         port=port,
-        reload=True,   
+        reload=False,   
         log_level="info"
     )
 

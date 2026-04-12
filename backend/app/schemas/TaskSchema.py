@@ -29,16 +29,6 @@ class Task(BaseModel):
     added_running_dt: Optional[str] = None
     change_dt: Optional[datetime] = None
 
-class TaskOut(Task):
-    task_id: int
-    task_name: str
-    on_control: str
-    owner: str
-    task_group: Optional[str] = None
-    task_deps_id: Optional[int] = None
-    status: str
-    notifications: bool
-    comment: Optional[str] = None
  
 class TaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -47,13 +37,15 @@ class TaskResponse(BaseModel):
     on_control: str
     owner: str
     schedule: Optional[str] = None
-    next_run: Optional[str] = None
+    next_run_at: Optional[str] = None
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None
     status: str
     notifications: bool
     comment: Optional[str] = None
-
+    last_run_at: Optional[datetime] = None
+    edit_expire_at: Optional[datetime] = None
+    run_expire_at: Optional[datetime] = None
 
 
 

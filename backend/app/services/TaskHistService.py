@@ -29,6 +29,7 @@ class TaskHistService:
         task_uid: int,
         task_id: int,
         task_name: str,
+        owner: str,
         dt_time: datetime
         ) -> TaskHist:
         
@@ -36,11 +37,13 @@ class TaskHistService:
             task_uid=task_uid,
             task_id=task_id,
             task_name=task_name,
+            task_owner=owner,
             created_dt=dt_time,
             change_dt=dt_time
         )
 
-        return self.taskHistRepository.create(new_task_hist)
+        self.taskHistRepository.create(new_task_hist)
+        self.db.commit()
 
     def get_by_uid(self, task_uid: int) -> TaskHist | None:           
         return self.taskHistRepository.get_by_uid(task_uid)
@@ -67,10 +70,11 @@ class TaskHistService:
         taskHist.change_dt = delete_dt
         self.update(taskHist)
     
-    def update_change_date_from_task_service(self, task_uid: int, task_name: str, change_dt: datetime):
+    def update_change_date_from_task_service(self, task_uid: int, task_name: str, owner: str, change_dt: datetime):
         taskHist = self.get_by_uid(task_uid)
         taskHist.change_dt=change_dt
         taskHist.task_name=task_name
+        taskHist.task_owner=owner
         self.update(taskHist)
 
     def update_change_date_from_task_prop_service(self, task_uid: int, change_dt: datetime):

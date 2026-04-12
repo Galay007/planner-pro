@@ -47,8 +47,14 @@ class Task(Base):
                         nullable=False, default=InRunningEnum.CLEARED)
     added_running_dt = Column(DateTime(timezone=False), nullable=True )
     change_dt = Column(DateTime(timezone=False), nullable=False )
+    last_run_at = Column(DateTime(timezone=False), nullable=True )
+    edit_expire_at = Column(DateTime(timezone=False), nullable=False, default='1900-01-01')
+    run_expire_at = Column(DateTime(timezone=False), nullable=False, default='1900-01-01')
 
     task_props: Mapped["TaskProperty"] = relationship(back_populates="task", cascade="all, delete-orphan", lazy="select", passive_deletes=True )
+
+    TTL_EDIT_SECONDS = 30
+    TTL_RUN_SECONDS = 30
 
     @computed_field
     @property
@@ -60,7 +66,7 @@ class Task(Base):
     
     @computed_field
     @property
-    def next_run(self) -> Optional[str]:
+    def next_run_at(self) -> Optional[str]:
         try:
             if self.on_control == 'on' and self.task_deps_id is None:
                 cs = CronSim(self.task_props.cron_expression, datetime.now())
@@ -69,6 +75,11 @@ class Task(Base):
             return None
         except Exception:
             return None
+    
+    @computed_field
+    @property
+    def db_url(self) -> Optional[str]:
+        return self.task_props.conn.build_sqlalchemy_url() if self.task_props else None
       
 
     def return_id_uid(self):
@@ -129,16 +140,32 @@ class Task(Base):
                 
                 return False, message
         return True, '' 
-
+    
+    def check_valid_for_manual_execute(self) -> tuple[Boolean,str]:
+        if not all(self.manual_execute_params.values()):
+            first_key_false = next((key for key, value in self.manual_execute_params.items() if not value), None)
+            message = f'One-time execute for task_id {self.task_id} can not be run due to not {first_key_false}'
+            logger.warning(message)
+                
+            return False, message
+        
+        return True, ''
 
     @property
     def manual_execute_params(self):
+        return {
+            "valid_storage_path": self.is_storage_path(),
+            "valid_connection": self.is_connection()
+        }
+    
+    @property
+    def schedule_future_execute_params(self):
         return {
             "valid_cron": self.is_cron(),
             "valid_storage_path": self.is_storage_path(),
             "valid_connection": self.is_connection()
         }
-    
+
     @property
     def depended_execute_params(self):
         return {
@@ -218,7 +245,10 @@ class Task(Base):
     
     def is_cron(self) -> Boolean:
         try:
-            return self.is_cron_valid(self.task_props.cron_expression, self.task_id)
+            if self.task_deps_id is None:
+                return self.is_cron_valid(self.task_props.cron_expression, self.task_id)
+            else:
+                return False
         except Exception:
             return False   
         
@@ -233,3 +263,7 @@ class Task(Base):
             return True if self.task_props.connection_id is not None else False
         except Exception:
             return False
+    
+    def is_running(self) -> Boolean:
+        return True if self.in_running == TaskStatusEnum.RUNNING  else False
+

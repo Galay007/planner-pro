@@ -5,6 +5,8 @@ from ..utils.DatetimeUtils import DateTimeUtils
 from typing import List
 from .TaskHistService import TaskHistService
 from .SseService import send_to_client_update
+from datetime import datetime, timedelta
+
 
 
 class TaskService:
@@ -43,14 +45,14 @@ class TaskService:
         new_task.change_dt = dt_time
 
         self.taskRepository.create(new_task)
-        self.taskHistService.create(new_task.task_uid, new_task.task_id, new_task.task_name, dt_time)
+        self.taskHistService.create(new_task.task_uid, new_task.task_id, new_task.task_name, new_task.owner, dt_time)
 
         send_to_client_update(event_type="task_update")
 
         return new_task
 
 
-    def get_task_by_id(self,task_id: int) -> Task | None:
+    def get_task_by_id(self, task_id: int) -> Task | None:
         return self.taskRepository.get(task_id)
     
     def generate_id(self, task_id: int) -> int:
@@ -64,12 +66,15 @@ class TaskService:
     def get_max_task_id(self) -> int:
         return self.taskRepository.get_max_task_id()
 
-    def update(self, task: Task) -> Task:
+    def update_with_informing(self, task: Task) -> Task:
         task.change_dt = DateTimeUtils.local_wo_microsec()
-        self.taskHistService.update_change_date_from_task_service(task.task_uid, task.task_name, task.change_dt)
+        self.taskHistService.update_change_date_from_task_service(task.task_uid, task.task_name, task.owner, task.change_dt)
+        return self.taskRepository.update(task)
+    
+    def update_without_informing(self, task: Task) -> Task:
         return self.taskRepository.update(task)
 
-    def delete(self,task: Task) -> int:
+    def delete(self, task: Task) -> int:
         # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
 
@@ -79,6 +84,35 @@ class TaskService:
     def check_control():
         pass
         #ДОБАВИТЬ ПЕРЕКЛЮЧЕНИЕ CONTROL В OFF ПЕРЕД УДАЛЕНИЕМ TASK_ID, У КОГО TASK_DEPS_ID == TASK_ID deleting
-
         #ДОБАВИТЬ ПЕРЕКЛЮЧЕНИЕ CONTROL В OFF ПЕРЕД УДАЛЕНИЕМ CONNECTION, У КОГО PLAY И CONNECTION.NAME deleting
+
+    def one_time_run(self, task: Task) -> None:
+        #from ..workers.one_time_worker import one_time_process
+        import subprocess
+        from pathlib import Path
+        import sys
+
+        task.last_run_at = datetime.now()
+        task.run_expire_at = datetime.now() + timedelta(seconds=task.TTL_RUN_SECONDS)
+        self.update_with_informing(task)
+
+        current_dir = Path(__file__).parent   
+        app_dir = current_dir.parent  
+
+        script_path = app_dir / 'workers' / 'one_time_worker.py'
+
+        if task.task_props.task_type == 'sql':
+
+            subprocess.Popen([
+            sys.executable,
+            script_path,
+            str(task.task_id),
+            str(task.TTL_RUN_SECONDS),
+            task.db_url
+            ], 
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE,
+            close_fds=True # закрывает ВСЕ файловые дескрипторы родителя
+            )
+
+
         

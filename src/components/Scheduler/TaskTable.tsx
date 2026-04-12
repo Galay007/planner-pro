@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TaskOut, ServerMessage } from '../../types';
-import { startTask, stopTask, parseApiError } from '../../services/api';
+import { startTask, stopTask, oneTimeRun, parseApiError } from '../../services/api';
+import { Play } from 'lucide-react';
 import './TaskTable.css';
 
 interface Props {
@@ -35,6 +36,16 @@ export default function TaskTable({ tasks, selectedId, onSelect, onServerMessage
     return a.task_id - b.task_id;
   });
 
+  async function handleOneTimeRun(taskId: number) {
+    try {
+      const { status } = await oneTimeRun(taskId);
+      onServerMessage({ status, text: `Задача #${taskId} запущена разово`, ok: true });
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка запуска', detail, ok: false });
+    }
+  }
+
   async function handleControl(task: TaskOut) {
     const id = task.task_id;
     try {
@@ -48,7 +59,6 @@ export default function TaskTable({ tasks, selectedId, onSelect, onServerMessage
     } catch (e) {
       const { status, detail } = parseApiError(e);
       onServerMessage({ status, text: 'Ошибка управления', detail, ok: false });
-      console.error('Control action failed', e);
     }
   }
 
@@ -74,14 +84,16 @@ export default function TaskTable({ tasks, selectedId, onSelect, onServerMessage
             <ColHeader label="Управление" col="on_control" />
             <ColHeader label="Имя задачи" col="task_name" />
             <ColHeader label="Группа" col="task_group" />
-            <ColHeader label="Автор" col="owner" />
+            <ColHeader label="Владелец" col="owner" />
             <ColHeader label="Статус" col="status" />
             <ColHeader label="Расписание" col="schedule" />
             <ColHeader label="След. запуск" col="schedule" />
+            <ColHeader label="Посл. запуск" col="last_run_at" />
             <ColHeader label="Связь с ID" col="task_deps_id" />
             <ColHeader label="Уведомл." col="notifications" />
             <th className="table__th">Логи</th>
             <th className="table__th">Комментарий</th>
+            <th className="table__th">System</th>
           </tr>
         </thead>
         <tbody>
@@ -96,6 +108,7 @@ export default function TaskTable({ tasks, selectedId, onSelect, onServerMessage
                 task={task}
                 isSelected={selectedId === task.task_id}
                 onControl={handleControl}
+                onOneTimeRun={handleOneTimeRun}
                 onSelect={onSelect}
               />
             ))
@@ -110,22 +123,25 @@ interface RowProps {
   task: TaskOut;
   isSelected: boolean;
   onControl: (task: TaskOut) => void;
+  onOneTimeRun: (taskId: number) => void;
   onSelect: (id: number | null) => void;
 }
 
-function TaskRow({ task, isSelected, onControl, onSelect }: RowProps) {
+function TaskRow({ task, isSelected, onControl, onOneTimeRun, onSelect }: RowProps) {
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
 
   const statusClass =
-    task.status === 'active' ? 'status--active'
-    : task.status === 'running' ? 'status--running'
+    new Date(task.run_expire_at) >= new Date() ? 'status--running'
+    : task.status === 'active' ? 'status--active'
+    : task.status === 'running'   ? 'status--running'
     : task.status === 'error' ? 'status--error'
     : 'status--stopped';
 
   const statusLabel =
-    task.status === 'running' ? 'Выполняется'
+    task.status === 'running' ? 'Running'
     : task.status === 'error' ? 'Ошибка'
     : task.status === 'stopped' ? 'Остановлен'
+    : new Date(task.run_expire_at) >= new Date() ? 'Running'
     : task.status;
 
   const isOn = task.on_control === 'on';
@@ -176,7 +192,11 @@ function TaskRow({ task, isSelected, onControl, onSelect }: RowProps) {
       </td>
 
       <td className="table__td table__td--center">{task.schedule ?? <span className="muted">-</span>}</td>
-      <td className="table__td table__td--center">{task.next_run ?? <span className="muted">-</span>}</td>
+      <td className="table__td table__td--center">{task.next_run_at ?? <span className="muted">-</span>}</td>
+      <td className="table__td table__td--center">{task.last_run_at 
+        ? task.last_run_at.replace('T', ' ').slice(0, 19) 
+        : <span className="muted">-</span>}
+      </td>
       <td className="table__td table__td--center">{task.task_deps_id ?? 
         <span className="muted">-</span>}</td>
 
@@ -189,6 +209,11 @@ function TaskRow({ task, isSelected, onControl, onSelect }: RowProps) {
       </td>
 
       <td className="table__td">{task.comment ?? <span className="muted"></span>}</td>
+      <td className="table__td table__td--center">
+        <button className="run-btn" title="Разовый запуск" onClick={() => onOneTimeRun(task.task_id)}>
+          <Play size={9} strokeWidth={2} />
+        </button>
+      </td>
     </tr>
   );
 }

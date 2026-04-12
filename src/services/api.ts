@@ -27,12 +27,17 @@ export async function getTasks(): Promise<{ data: TaskOut[] } & ApiResult> {
 }
 
 export async function startTask(taskId: number): Promise<ApiResult> {
-  const response = await api.put(`/tasks/${taskId}/on`);
+  const response = await api.put(`/tasks/on/${taskId}`);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
 export async function stopTask(taskId: number): Promise<ApiResult> {
-  const response = await api.put(`/tasks/${taskId}/off`);
+  const response = await api.put(`/tasks/off/${taskId}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function oneTimeRun(taskId: number): Promise<ApiResult> {
+  const response = await api.put(`/tasks/run/${taskId}`);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 

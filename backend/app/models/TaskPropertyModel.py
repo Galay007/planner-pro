@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .TaskModel import Task
     from .TaskFileModel import TaskFile
+    from .ConnectionModel import Connection
 
 class TaskProperty(Base):
     __tablename__ = 'task_properties'
@@ -25,5 +26,7 @@ class TaskProperty(Base):
     change_dt = Column(DateTime(timezone=False), nullable=False)
 
     files: Mapped[list["TaskFile"]] = relationship(back_populates="task_props", cascade="all, delete-orphan", lazy="select")
-
+    conn: Mapped["Connection"] = relationship(foreign_keys=[connection_id], lazy="select")
     task: Mapped["Task"] = relationship(back_populates="task_props", lazy="select")
+
+

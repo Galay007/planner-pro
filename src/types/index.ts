@@ -5,11 +5,14 @@ export interface TaskOut {
   owner: string;            
   task_group: string | null; 
   schedule: string | null;  
-  next_run: string | null;
+  next_run_at: string | null;
   task_deps_id: number | null; 
   status: string;           
   notifications: boolean;   
-  comment: string | null;   
+  comment: string | null;  
+  last_run_at: string | null;
+  edit_expire_at: string;
+  run_expire_at: string; 
 }
 
 // Connections

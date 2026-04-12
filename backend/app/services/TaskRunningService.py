@@ -51,7 +51,7 @@ class TaskRunningService:
            
                     validated_tasks_for_adding.append(task)                  
 
-                elif task.is_in_future() and not task.is_added() and all(task.manual_execute_params.values()) :
+                elif task.is_in_future() and not task.is_added() and all(task.schedule_future_execute_params.values()) :
                     pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
 
                 elif task.is_to_clean() or not all(task.schedule_execute_params.values()):

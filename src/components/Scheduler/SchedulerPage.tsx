@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { connectSSE, disconnectSSE } from '../../services/sse';
 import { getTasks, deleteTask, getMaxTaskId, createTask, parseApiError } from '../../services/api';
 import type { TaskOut, ServerMessage } from '../../types';
@@ -18,6 +18,7 @@ export default function SchedulerPage() {
   const [deleting, setDeleting] = useState(false);
   const [adding, setAdding] = useState(false);
   const [serverMessage, setServerMessage] = useState<ServerMessage | null>(null);
+  const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const busy = loading || refreshing || adding || deleting;
@@ -26,7 +27,8 @@ export default function SchedulerPage() {
 
   const pushMessage = useCallback((msg: ServerMessage) => {
     setServerMessage(msg);
-    setTimeout(() => setServerMessage(null), 5000);
+    if (msgTimer.current) clearTimeout(msgTimer.current);
+    msgTimer.current = setTimeout(() => setServerMessage(null), 5000);
   }, []);
 
   function fetchTasks(isRefresh = false) {
@@ -104,7 +106,8 @@ export default function SchedulerPage() {
       t.task_name.toLowerCase().includes(q) ||
       (t.task_group ?? '').toLowerCase().includes(q) ||
       (t.schedule ?? '').toLowerCase().includes(q) ||
-      (t.next_run ?? '').toLowerCase().includes(q) ||
+      (t.next_run_at ?? '').toLowerCase().includes(q) ||
+      (t.last_run_at ?? '').toLowerCase().includes(q) ||
       t.owner.toLowerCase().includes(q) ||
       t.status.toLowerCase().includes(q)
     );
