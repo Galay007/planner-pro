@@ -125,12 +125,12 @@ def update_task(task_id: int, data: dict, taskService: TaskService = Depends()):
 def get_object_from_db(service, param):
     return service.get_task_by_id(param)
 
-def check_is_none(object, param):
-    if object is None:
-        logger.warning(f"Task '{param}' not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task '{param}' not found")
+def check_is_none(task, task_id):
+    if task is None:
+        logger.warning(f"Task id {task_id} not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task_id {task_id} not found")
     
-def check_is_running(object):
-    if object.status == TaskStatusEnum.RUNNING:
-        logger.warning(f"Task id '{object.task_id}' is running, wait finish")
-        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task id '{object.task_id}' is running, wait finish")
+def check_is_running(task):
+    if task.status == TaskStatusEnum.RUNNING or datetime.now() <= task.run_expire_at:
+        logger.warning(f"Task id {task.task_id} is RUNNING")
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task_id {task.task_id} is RUNNING")

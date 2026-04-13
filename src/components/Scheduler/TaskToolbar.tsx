@@ -4,6 +4,7 @@ import { Plus, Minus } from 'lucide-react';
 interface Props {
   onAdd: () => void;
   adding: boolean;
+  editing: boolean;
   onRefresh: () => void;
   refreshing: boolean;
   selectedId: number | null;
@@ -11,14 +12,14 @@ interface Props {
   deleting: boolean;
 }
 
-export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, selectedId, onDelete, deleting }: Props) {
+export default function TaskToolbar({ onAdd, adding, editing, onRefresh, refreshing, selectedId, onDelete, deleting }: Props) {
   return (
     <div className="toolbar">
       <div className="toolbar__group">
         <button
           className="toolbar__btn toolbar__btn--primary"
           title="Добавить задачу"
-          disabled={adding}
+          disabled={adding || editing}
           onClick={onAdd}
         >
           <Plus size={15} strokeWidth={1.5} />
@@ -26,7 +27,7 @@ export default function TaskToolbar({ onAdd, adding, onRefresh, refreshing, sele
         <button
           className="toolbar__btn toolbar__btn--primary"
           title={selectedId ? `Удалить задачу #${selectedId}` : 'Выберите задачу для удаления'}
-          disabled={selectedId === null || deleting}
+          disabled={selectedId === null || deleting || editing}
           onClick={onDelete}
         >
           <Minus size={15} strokeWidth={1.5} />

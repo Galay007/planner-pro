@@ -7,3 +7,4 @@ cryptography==46.0.5
 python_dotenv==1.2.2
 python-multipart==0.0.22
 cronsim==2.7
+requests=2.33.1

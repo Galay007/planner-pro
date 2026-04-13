@@ -35,10 +35,12 @@
 .toolbar__btn--primary {
   color: var(--color-primary);
   font-weight: 700;
+
 }
 
 .toolbar__btn--primary:hover {
   background: var(--color-primary-light);
+  
 }
 
 .toolbar__btn--red {

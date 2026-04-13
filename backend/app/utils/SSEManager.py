@@ -21,6 +21,10 @@ class SSEManager:
                 if await request.is_disconnected():
                     break
                 event = await queue.get()
+
+                if event is None:
+                    break
+
                 yield f"{event}\n\n"
         except asyncio.CancelledError:
             return
@@ -33,15 +37,15 @@ class SSEManager:
     async def broadcast(self, data: str, event_type: str = default_type):
         for queue in self.clients:
             try:
-                await queue.put(f"event: {event_type}\ndata: {data}\n\n")
+                await queue.put_nowait(f"event: {event_type}\ndata: {data}\n\n")
             except Exception:
                 pass  
 
     async def shutdown(self):
         for queue in self.clients[:]:
             try:
-                await queue.put("event: close\ndata: server_shutdown\n\n")
+                await queue.put_nowait(None) 
             except Exception:
                 pass
+        self.clients.clear()
         await asyncio.sleep(0.01)
-

@@ -55,7 +55,7 @@ def register_db_exception_handlers(app: FastAPI):
         detail = f"Неверные параметры: {exc}"
         raise HTTPException(
             status_code=status_code, 
-            detail=detail
+            detail=f"{exc}"
         )
 
     @app.exception_handler(IntegrityError)

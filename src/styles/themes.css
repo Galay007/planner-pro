@@ -32,8 +32,9 @@
   --color-ctrl-play-border: #7dd3fc;
   --color-ctrl-play-text: #0369a1;
   --color-ctrl-stop-bg: #fee2e2;
-  --color-ctrl-stop-border: #fca5a5;
+  --color-ctrl-stop-border: #fac6c6;
   --color-ctrl-stop-text: #dc2626;
+  --color-ctrl-success-border: #c4ead1;
 }
 
 /* ─── Theme: Dark Pro ─── */
@@ -72,5 +73,6 @@
   --color-ctrl-stop-bg: #2d1515;
   --color-ctrl-stop-border: #7f1d1d;
   --color-ctrl-stop-text: #f87171;
+  --color-ctrl-success-border: #105528;
 }
 

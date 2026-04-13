@@ -146,6 +146,7 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
       <div className="modal">
         <div className="modal__header">
           <span className="modal__title">Новое подключение</span>
+          <button className="modal__close" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal__body">

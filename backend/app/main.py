@@ -17,6 +17,7 @@ from .utils.SSEManager import SSEManager
 from .configs.Database import init_metadata_db
 from .exceptions import register_db_exception_handlers
 from .services.SseService import set_sse_manager
+from .schemas.SseSchemas import EmitRequest
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -45,14 +46,8 @@ async def lifespan(app: FastAPI):
     
     yield 
 
-    try:
-        await asyncio.wait_for(sse_manager.shutdown(), timeout=2.0)
-    except asyncio.TimeoutError:
-        logging.warning("SSE shutdown timed out")
-    except Exception as e:
-        logging.error(f"SSE shutdown error: {e}")
-
     is_shutting_down = True
+    await sse_manager.shutdown() 
 
     print("Shutting down application...")  
 
@@ -91,8 +86,8 @@ async def sse_endpoint(request: Request):
     )
 
 @app.post("/sse/emit")
-async def emit_event(message: str):
-    await sse_manager.broadcast(message)
+async def emit_event(request: EmitRequest ):
+    await sse_manager.broadcast(request.message, request.event_type)
     return {"ok": True}
 
 

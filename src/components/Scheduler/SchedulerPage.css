@@ -132,3 +132,63 @@
 .scheduler__state--error {
   color: var(--color-red);
 }
+
+.nav-block-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.nav-block-dialog {
+  background: var(--color-toolbar-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+.nav-block-dialog__text {
+  font-size: 14px;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+
+.nav-block-dialog__btns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.nav-block-dialog__btn {
+  padding: 7px 16px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.nav-block-dialog__btn--cancel {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.nav-block-dialog__btn--cancel:hover {
+  background: var(--color-table-row-hover);
+}
+
+.nav-block-dialog__btn--confirm {
+  background: var(--color-red);
+  border: 1px solid transparent;
+  color: #fff;
+}
+
+.nav-block-dialog__btn--confirm:hover {
+  opacity: 0.88;
+}

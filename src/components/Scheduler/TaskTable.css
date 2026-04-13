@@ -38,7 +38,7 @@
 }
 
 .table__td--id {
-  font-weight: 600;
+  font-weight: 400;
   color: var(--color-text-muted);
   width: 50px;
   text-align: center;
@@ -122,6 +122,11 @@
 }
 
 /* Selected row */
+.table__row--locked .table__td {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .table__row--selected .table__td {
   background: var(--color-primary-light) !important;
 }
@@ -168,12 +173,20 @@
 }
 
 /* Links */
+.run-btn:focus {
+  outline: none;
+}
+
+.run-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+}
+
 .run-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
   border-radius: 5px;
   border: 1px solid var(--color-border);
   background: transparent;
@@ -187,6 +200,56 @@
   background: var(--color-success-light);
   color: var(--color-success);
   border-color: var(--color-success);
+}
+
+.run-btn--cancel:hover {
+  background: var(--color-ctrl-stop-border);
+  color: var(--color-red);
+  border-color: var(--color-red);
+}
+
+.run-btn--save:hover {
+  background: var(--color-ctrl-success-border);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.run-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.run-btn--edit:hover,
+.run-btn--settings:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.run-btn--launch {
+  color: var(--color-success);
+}
+
+.run-btn--edit {
+  color: var(--color-primary);
+}
+
+.run-btn--save {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.run-btn--cancel {
+  color: var(--color-red);
+  border-color: var(--color-red);
+  background: var(--color-red-light);
+}
+
+.action-btns {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
 }
 
 .link-btn {

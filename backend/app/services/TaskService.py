@@ -87,7 +87,6 @@ class TaskService:
         #ДОБАВИТЬ ПЕРЕКЛЮЧЕНИЕ CONTROL В OFF ПЕРЕД УДАЛЕНИЕМ CONNECTION, У КОГО PLAY И CONNECTION.NAME deleting
 
     def one_time_run(self, task: Task) -> None:
-        #from ..workers.one_time_worker import one_time_process
         import subprocess
         from pathlib import Path
         import sys
@@ -95,22 +94,22 @@ class TaskService:
         task.last_run_at = datetime.now()
         task.run_expire_at = datetime.now() + timedelta(seconds=task.TTL_RUN_SECONDS)
         self.update_with_informing(task)
-
+        
         current_dir = Path(__file__).parent   
         app_dir = current_dir.parent  
-
-        script_path = app_dir / 'workers' / 'one_time_worker.py'
 
         if task.task_props.task_type == 'sql':
 
             subprocess.Popen([
             sys.executable,
-            script_path,
+            '-m', 'app.workers.one_time_worker',
             str(task.task_id),
+            str(task.task_props.task_type),
             str(task.TTL_RUN_SECONDS),
             task.db_url
             ], 
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NEW_CONSOLE,
+            cwd=app_dir.parent,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW, # | subprocess.CREATE_NEW_CONSOLE,
             close_fds=True # закрывает ВСЕ файловые дескрипторы родителя
             )
 

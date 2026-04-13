@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { connectSSE, disconnectSSE } from '../../services/sse';
 import { getTasks, deleteTask, getMaxTaskId, createTask, parseApiError } from '../../services/api';
 import type { TaskOut, ServerMessage } from '../../types';
@@ -18,7 +19,10 @@ export default function SchedulerPage() {
   const [deleting, setDeleting] = useState(false);
   const [adding, setAdding] = useState(false);
   const [serverMessage, setServerMessage] = useState<ServerMessage | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const blocker = useBlocker(editingId !== null);
 
   useEffect(() => {
     const busy = loading || refreshing || adding || deleting;
@@ -127,6 +131,7 @@ export default function SchedulerPage() {
         refreshing={refreshing}
         onRefresh={() => fetchTasks(true)}
         adding={adding}
+        editing={editingId !== null}
         onAdd={handleAdd}
         deleting={deleting}
         onDelete={handleDelete}
@@ -167,10 +172,28 @@ export default function SchedulerPage() {
         <TaskTable
           tasks={filteredTasks}
           selectedId={selectedId}
+          editingId={editingId}
+          setEditingId={setEditingId}
           onSelect={setSelectedId}
           onRefresh={() => fetchTasks(true)}
           onServerMessage={pushMessage}
         />
+      )}
+
+      {blocker.state === 'blocked' && (
+        <div className="nav-block-overlay">
+          <div className="nav-block-dialog">
+            <p className="nav-block-dialog__text">Есть несохранённые изменения. Покинуть страницу?</p>
+            <div className="nav-block-dialog__btns">
+              <button className="nav-block-dialog__btn nav-block-dialog__btn--cancel" onClick={() => blocker.reset?.()}>
+                Остаться
+              </button>
+              <button className="nav-block-dialog__btn nav-block-dialog__btn--confirm" onClick={() => blocker.proceed?.()}>
+                Покинуть
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

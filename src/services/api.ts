@@ -36,8 +36,23 @@ export async function stopTask(taskId: number): Promise<ApiResult> {
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
+export async function startEdit(taskId: number): Promise<ApiResult> {
+  const response = await api.put(`/tasks/start_edit/${taskId}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function stopEdit(taskId: number): Promise<ApiResult> {
+  const response = await api.put(`/tasks/stop_edit/${taskId}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
 export async function oneTimeRun(taskId: number): Promise<ApiResult> {
   const response = await api.put(`/tasks/run/${taskId}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function updateTask(taskId: number, body: Partial<TaskOut>): Promise<ApiResult> {
+  const response = await api.put(`/tasks/${taskId}`, body);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
