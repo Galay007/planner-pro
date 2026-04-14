@@ -4,7 +4,7 @@ from ..schemas.TaskSchema import TaskCreate, TaskResponse
 from ..services.TaskService import TaskService
 from typing import List
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ def delete(task_id: int, taskService: TaskService = Depends()):
     task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
     check_is_running(task)
+    check_is_editing(task)
     
     if task.on_control == 'on':
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Can not be deleted while ON")
@@ -62,6 +63,7 @@ def to_on_task(task_id: int, taskService: TaskService = Depends()):
     task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
     check_is_running(task)
+    check_is_editing(task)
 
     if task.on_control == 'off':
         if task.task_name == '-' or task.owner == '-':
@@ -94,11 +96,59 @@ def to_off_task(task_id: int, taskService: TaskService = Depends()):
     
     taskService.update_with_informing(task)
 
+@TaskRouter.put("/start_edit/{task_id}")
+def to_off_task(task_id: int, taskService: TaskService = Depends()):
+    task = get_object_from_db(taskService, task_id)
+    check_is_none(task, task_id)
+    check_is_running(task)
+    check_is_editing(task)
+
+    if task.on_control == 'on':
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task_id {task_id} can not be edit while ON")
+    
+    task.edit_expire_at = datetime.now() + timedelta(seconds=task.TTL_RUN_SECONDS)
+    taskService.update_with_informing(task)
+
+@TaskRouter.put("/heart_beat/{task_id}")
+def to_off_task(task_id: int, taskService: TaskService = Depends()):
+    task = get_object_from_db(taskService, task_id)
+    check_is_none(task, task_id)
+
+    task.edit_expire_at = datetime.now() + timedelta(seconds=task.TTL_RUN_SECONDS)
+    taskService.update_with_informing(task)
+
+@TaskRouter.put("/cancel_edit/{task_id}")
+def to_off_task(task_id: int, taskService: TaskService = Depends()):
+    task = get_object_from_db(taskService, task_id)
+    check_is_none(task, task_id)
+
+    task.edit_expire_at = datetime.now() - timedelta(seconds=1)
+
+    taskService.update_with_informing(task)
+
+@TaskRouter.put("/save/{task_id}")
+def to_off_task(task_id: int, body: TaskResponse, taskService: TaskService = Depends()):
+    task = get_object_from_db(taskService, task_id)
+    check_is_none(task, task_id)
+    
+    task.task_name = body.task_name
+    task.task_group = body.task_group
+    task.owner = body.owner
+    task.task_deps_id = body.task_deps_id
+    task.notifications = body.notifications
+    task.comment = body.comment
+
+    task.edit_expire_at = datetime.now() - timedelta(seconds=1)
+
+    taskService.update_with_informing(task)
+
+
 @TaskRouter.put("/run/{task_id}")
 def to_run_task(task_id: int, taskService: TaskService = Depends()): 
     task = get_object_from_db(taskService, task_id)
     check_is_none(task, task_id)
     check_is_running(task)
+    check_is_editing(task)
 
     if datetime.now() <= task.run_expire_at:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"Task id '{task.task_id}' is one-time running, wait finish")
@@ -131,6 +181,11 @@ def check_is_none(task, task_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Task_id {task_id} not found")
     
 def check_is_running(task):
-    if task.status == TaskStatusEnum.RUNNING or datetime.now() <= task.run_expire_at:
+    if task.status == TaskStatusEnum.RUNNING or datetime.now() < task.run_expire_at:
         logger.warning(f"Task id {task.task_id} is RUNNING")
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task_id {task.task_id} is RUNNING")
+    
+def check_is_editing(task):
+    if task.status == TaskStatusEnum.RUNNING or datetime.now() < task.edit_expire_at:
+        logger.warning(f"Task id {task.task_id} is RUNNING")
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Task_id {task.task_id} is EDITING")

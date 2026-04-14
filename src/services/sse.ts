@@ -27,10 +27,11 @@ export function connectSSE(handlers: SSEHandlers): EventSource {
     handlers.onError?.(error);
   };
 
+  let opened = false;
   eventSource.addEventListener('task_update', () => {
     Logger.info('[SSE] update event received');
+    if (!opened) { opened = true; handlers.onOpen?.(); }
     handlers.onRefresh?.();
-    // setTimeout(() => handlers.onRefresh?.(), 200);
   });
 
   return eventSource;

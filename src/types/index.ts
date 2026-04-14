@@ -13,6 +13,7 @@ export interface TaskOut {
   last_run_at: string | null;
   edit_expire_at: string;
   run_expire_at: string; 
+  TTL_EDIT_SECONDS: number;
 }
 
 // Connections

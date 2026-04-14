@@ -46,6 +46,7 @@ class TaskResponse(BaseModel):
     last_run_at: Optional[datetime] = None
     edit_expire_at: Optional[datetime] = None
     run_expire_at: Optional[datetime] = None
+    TTL_EDIT_SECONDS: int
 
 
 

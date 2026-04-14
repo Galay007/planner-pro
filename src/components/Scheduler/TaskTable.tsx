@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { TaskOut, ServerMessage } from '../../types';
-import { startTask, stopTask, oneTimeRun, getTasks, updateTask, parseApiError } from '../../services/api';
+import { startTask, stopTask, oneTimeRun, getTasks, 
+  saveTask, parseApiError, startEdit, cancelEdit, sendHeartBeat } from '../../services/api';
 import { Play, Pencil, Settings, Check, X } from 'lucide-react';
 import './TaskTable.css';
 
@@ -17,7 +18,21 @@ interface Props {
 type SortKey = keyof TaskOut;
 type SortDir = 'asc' | 'desc';
 
-export default function TaskTable({ tasks, selectedId, editingId, setEditingId, onSelect, onServerMessage }: Props) {
+type EditState = {
+  task_name: string;
+  task_group: string | null;
+  owner: string;
+  task_deps_id: number | null;
+  notifications: boolean;
+  comment: string | null;
+};
+
+const EDITABLE_FIELDS: (keyof EditState)[] = [
+  'task_name', 'task_group', 'owner', 'task_deps_id', 'notifications', 'comment',
+];
+
+export default function TaskTable({ tasks, selectedId, editingId, 
+  setEditingId, onSelect, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -48,29 +63,85 @@ export default function TaskTable({ tasks, selectedId, editingId, setEditingId, 
     }
   }
 
-  async function handleEdit(taskId: number): Promise<void> {
+  async function handleCancel(taskId: number) {
     try {
-      await getTasks();
+      const { status } = await cancelEdit(taskId);
+      onServerMessage({ status, text: `Задача #${taskId} редактир. остановлено`, ok: true });
+      stopEditing()
     } catch (e) {
       const { status, detail } = parseApiError(e);
-      onServerMessage({ status, text: 'Ошибка загрузки', detail, ok: false });
+      onServerMessage({ status, text: 'Ошибка запуска', detail, ok: false });
     }
   }
 
-  function handleCancel(taskId: number): void {
-    setEditingId(null);
-  }
-
-  async function handleSave(task: TaskOut): Promise<boolean> {
+  async function handleSave(edited: TaskOut) {
+    const original = tasks.find(t => t.task_id === edited.task_id);
+    const hasChanges = !original || EDITABLE_FIELDS.some(f => original[f] !== edited[f]);
+    if (!hasChanges) { stopEditing(); return; }
     try {
-      const { status } = await updateTask(task.task_id, task);
-      onServerMessage({ status, text: `Задача #${task.task_id} сохранена`, ok: true });
-      return true;
+      const { status } = await saveTask(edited.task_id, edited);
+      onServerMessage({ status, text: `Задача #${edited.task_id} сохранена`, ok: true });
+      stopEditing();
     } catch (e) {
       const { status, detail } = parseApiError(e);
       onServerMessage({ status, text: 'Ошибка сохранения', detail, ok: false });
-      return false;
     }
+  }
+  
+  const timerRef = useRef<number | null>(null);
+  const editingTaskIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+        console.log("Timer stoped")
+      }
+      if (editingTaskIdRef.current !== null) {
+        void cancelEdit(editingTaskIdRef.current);
+      }
+    };
+  }, []);
+
+  async function handleEdit(task: TaskOut) {
+    try {
+      await getTasks();
+      const { status } = await startEdit(task.task_id);
+      onServerMessage({ status, text: `Задача #${task.task_id} редакт. начато`, ok: true });
+      setEditingId(task.task_id);
+      editingTaskIdRef.current = task.task_id;
+      const intervalMs = Math.max(1, task.TTL_EDIT_SECONDS - 5) * 1000;
+
+      timerRef.current = window.setInterval(() => {
+        void handleHeartBeat(task);
+      }, intervalMs);
+
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка запуска', detail, ok: false });
+      stopEditing();
+    }
+  }
+
+  async function handleHeartBeat(task: TaskOut) {
+    try {
+      const { status } = await sendHeartBeat(task.task_id);
+      onServerMessage({ status, text: `Задача #${task.task_id} отправлен hearbeat`, ok: true });
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка heartbeat', detail, ok: false });
+      stopEditing();
+    }
+  }
+
+  function stopEditing() {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+      console.log("Timer stoped")
+    }
+    editingTaskIdRef.current = null;
+    setEditingId(null);
   }
 
   async function handleControl(task: TaskOut) {
@@ -108,7 +179,7 @@ export default function TaskTable({ tasks, selectedId, editingId, setEditingId, 
         <thead>
           <tr>
             <ColHeader label="ID" col="task_id" />
-            <ColHeader label="Управление" col="on_control" />
+            <ColHeader label="Пуск" col="on_control" />
             <ColHeader label="Имя задачи" col="task_name" />
             <ColHeader label="Группа" col="task_group" />
             <ColHeader label="Владелец" col="owner" />
@@ -135,7 +206,7 @@ export default function TaskTable({ tasks, selectedId, editingId, setEditingId, 
                 task={task}
                 isSelected={selectedId === task.task_id}
                 editingId={editingId}
-                setEditingId={setEditingId}
+                availableDepsIds={tasks.filter(t => t.task_id !== task.task_id).map(t => t.task_id)}
                 onControl={handleControl}
                 onOneTimeRun={handleOneTimeRun}
                 onEdit={handleEdit}
@@ -155,32 +226,57 @@ interface RowProps {
   task: TaskOut;
   isSelected: boolean;
   editingId: number | null;
-  setEditingId: (id: number | null) => void;
+  availableDepsIds: number[];
   onControl: (task: TaskOut) => void;
   onOneTimeRun: (taskId: number) => void;
-  onEdit: (taskId: number) => Promise<void>;
-  onSave: (task: TaskOut) => Promise<boolean>;
+  onEdit: (task: TaskOut) => void;
+  onSave: (task: TaskOut) => void;
   onCancel: (taskId: number) => void;
   onSelect: (id: number | null) => void;
 }
 
-function TaskRow({ task, isSelected, editingId, setEditingId, onControl, onOneTimeRun, onEdit, onSave, onCancel, onSelect }: RowProps) {
+function TaskRow({ task, isSelected, editingId, availableDepsIds, onControl, onOneTimeRun, onEdit, onSave, onCancel, onSelect }: RowProps) {
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
   const isEditing = editingId === task.task_id;
   const isLocked = editingId !== null && !isEditing;
 
+  const [editState, setEditState] = useState<EditState>({
+    task_name: task.task_name,
+    task_group: task.task_group,
+    owner: task.owner,
+    task_deps_id: task.task_deps_id,
+    notifications: task.notifications,
+    comment: task.comment,
+  });
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditState({
+        task_name: task.task_name,
+        task_group: task.task_group,
+        owner: task.owner,
+        task_deps_id: task.task_deps_id,
+        notifications: task.notifications,
+        comment: task.comment,
+      });
+    }
+  }, [isEditing]);
+
   const statusClass =
     new Date(task.run_expire_at) >= new Date() ? 'status--running'
+    : new Date(task.edit_expire_at) >= new Date() ? 'status--editing'
     : task.status === 'active' ? 'status--active'
     : task.status === 'running'   ? 'status--running'
     : task.status === 'error' ? 'status--error'
     : 'status--stopped';
 
-  const statusLabel =
-    task.status === 'running' ? 'Running'
+const statusLabel =
+    new Date(task.run_expire_at) >= new Date() ? 'Running'
+    : new Date(task.edit_expire_at) >= new Date() ? 'Editing'
+    : task.status === 'running' ? 'Running'
     : task.status === 'error' ? 'Ошибка'
-    : task.status === 'stopped' ? 'Остановлен'
-    : new Date(task.run_expire_at) >= new Date() ? 'Running'
+    : task.status === 'active' ? 'Active'
+    : task.status === 'not active' ? 'not act'
     : task.status;
 
   const isOn = task.on_control === 'on';
@@ -224,32 +320,74 @@ function TaskRow({ task, isSelected, editingId, setEditingId, onControl, onOneTi
         </span>
       </td>
 
-      <td className="table__td table__td--center">{task.task_name}</td>
-      <td className="table__td table__td--center">{task.task_group ?? <span className="muted"></span>}</td>
-      <td className="table__td table__td--center">{task.owner}</td>
+      <td className="table__td table__td--center">
+        {isEditing
+          ? <input className="edit-input edit-input--name" 
+                value={editState.task_name} 
+                onChange={e => setEditState(s => ({ ...s, task_name: e.target.value }))} />
+          : task.task_name}
+      </td>
+      <td className="table__td table__td--center">
+        {isEditing
+          ? <input className="edit-input edit-input--group" value={editState.task_group ?? ''} onChange={e => setEditState(s => ({ ...s, task_group: e.target.value || null }))} />
+          : (task.task_group ?? <span className="muted"></span>)}
+      </td>
+      <td className="table__td table__td--center">
+        {isEditing
+          ? <input className="edit-input edit-input--owner" 
+          value={editState.owner} onChange={e => setEditState(s => ({ ...s, owner: e.target.value }))} />
+          : task.owner}
+      </td>
 
       <td className="table__td table__td--center">
         <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
       </td>
 
       <td className="table__td table__td--center">{task.schedule ?? <span className="muted"></span>}</td>
-      <td className="table__td table__td--center">{task.next_run_at ?? <span className="muted"></span>}</td>
+      <td className="table__td table__td--center">{task.next_run_at 
+       ? (() => { const [d, t] = task.next_run_at!.split(' '); const [day, mon, yr] = d.split('.'); return `${day}.${mon}.${yr.slice(2)} ${t.slice(0, 5)}`; })()
+        : <span className="muted"></span>}
+        </td>
       <td className="table__td table__td--center">{task.last_run_at 
-        ? task.last_run_at.replace('T', ' ').slice(0, 19) 
+        ? (() => { const [d, t] = task.last_run_at!.replace('T', ' ').split(' '); const [yr, mon, day] = d.split('-'); return `${day}.${mon}.${yr.slice(2)} ${t.slice(0, 5)}`; })()
         : <span className="muted"></span>}
       </td>
-      <td className="table__td table__td--center">{task.task_deps_id ?? 
-        <span className="muted"></span>}</td>
+      <td className="table__td table__td--center">
+        {isEditing
+          ? (
+            <select className="edit-select" 
+              value={editState.task_deps_id ?? ''} 
+              onChange={e => setEditState(s => ({ ...s, task_deps_id: e.target.value === '' 
+              ? null : Number(e.target.value) }))}>
+              <option value="">пусто</option>
+                {availableDepsIds.map(id => <option key={id} value={id}>{id}
+
+              </option>)}
+            </select>
+          )
+          : (task.task_deps_id ?? <span className="muted"></span>)}
+      </td>
 
       <td className="table__td table__td--center">
-        <input type="checkbox" checked={task.notifications} readOnly />
+        <input
+          type="checkbox"
+          checked={isEditing ? editState.notifications : task.notifications}
+          readOnly={!isEditing}
+          onChange={isEditing ? e => 
+            setEditState(s => ({ ...s, notifications: e.target.checked })) : undefined}
+        />
       </td>
 
       <td className="table__td table__td--center">
         <button className="link-btn">Открыть</button>
       </td>
 
-      <td className="table__td">{task.comment ?? <span className="muted"></span>}</td>
+      <td className="table__td table__td--center">
+        {isEditing
+          ? <input className="edit-input edit-input--comment" value={editState.comment ?? ''} 
+            onChange={e => setEditState(s => ({ ...s, comment: e.target.value || null }))} />
+          : (task.comment ?? <span className="muted"></span>)}
+      </td>
       <td className="table__td table__td--center">
         <div className="action-btns">
           {isEditing ? (
@@ -257,24 +395,24 @@ function TaskRow({ task, isSelected, editingId, setEditingId, onControl, onOneTi
               <button
                 className="run-btn run-btn--save"
                 title="Сохранить"
-                onClick={async () => {
-                  const ok = await onSave(task);
-                  if (ok) setEditingId(null);
-                }}
+                onClick={() => onSave({ ...task, ...editState })}
               >
                 <Check size={11} strokeWidth={2.5} />
               </button>
               <button
                 className="run-btn run-btn--cancel"
                 title="Отмена"
-                onClick={() => onCancel(task.task_id)}
+                onClick={async () => {onCancel(task.task_id);
+                }}
               >
                 <X size={11} strokeWidth={2.5} />
               </button>
             </>
           ) : (
             <>
-              <button className="run-btn run-btn--launch" title="Разовый запуск" disabled={isLocked} onClick={() => onOneTimeRun(task.task_id)}>
+              <button className="run-btn run-btn--launch" 
+                title="Разовый запуск" disabled={isLocked} 
+                onClick={() => onOneTimeRun(task.task_id)}>
                 <Play size={9} strokeWidth={2} />
               </button>
               <button
@@ -283,8 +421,7 @@ function TaskRow({ task, isSelected, editingId, setEditingId, onControl, onOneTi
                 disabled={isLocked}
                 onClick={async () => {
                   onSelect(task.task_id);
-                  setEditingId(task.task_id);
-                  await onEdit(task.task_id);
+                  onEdit(task); 
                 }}
               >
                 <Pencil size={11} strokeWidth={1.8} />
@@ -292,7 +429,7 @@ function TaskRow({ task, isSelected, editingId, setEditingId, onControl, onOneTi
             </>
           )}
           <button className="run-btn run-btn--settings" title="Настройки" disabled={isLocked}>
-            <Settings size={11} strokeWidth={1.8} />
+            <Settings size={11.5} strokeWidth={1.8} />
           </button>
         </div>
       </td>

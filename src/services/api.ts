@@ -41,8 +41,13 @@ export async function startEdit(taskId: number): Promise<ApiResult> {
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
-export async function stopEdit(taskId: number): Promise<ApiResult> {
-  const response = await api.put(`/tasks/stop_edit/${taskId}`);
+export async function sendHeartBeat(taskId: number): Promise<ApiResult> {
+  const response = await api.put(`/tasks/heart_beat/${taskId}`);
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function cancelEdit(taskId: number): Promise<ApiResult> {
+  const response = await api.put(`/tasks/cancel_edit/${taskId}`);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
@@ -51,8 +56,8 @@ export async function oneTimeRun(taskId: number): Promise<ApiResult> {
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
-export async function updateTask(taskId: number, body: Partial<TaskOut>): Promise<ApiResult> {
-  const response = await api.put(`/tasks/${taskId}`, body);
+export async function saveTask(taskId: number, body: Partial<TaskOut>): Promise<ApiResult> {
+  const response = await api.put(`/tasks/save/${taskId}`, body);
   return { status: response.status, detail: extractDetail(response.data) };
 }
 

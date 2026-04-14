@@ -22,7 +22,9 @@ export default function SchedulerPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const blocker = useBlocker(editingId !== null);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    editingId !== null && currentLocation.pathname !== nextLocation.pathname
+  );
 
   useEffect(() => {
     const busy = loading || refreshing || adding || deleting;
