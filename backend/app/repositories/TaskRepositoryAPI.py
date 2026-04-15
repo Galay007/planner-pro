@@ -45,6 +45,7 @@ class TaskRepositoryAPI:
 
     def delete(self, task: Task) -> None:
         self.db.delete(task)
+        self.db.flush()
 
     def get_files(self, task_id: int) -> Task:  
         files = []    

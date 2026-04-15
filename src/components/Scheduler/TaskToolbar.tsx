@@ -32,12 +32,6 @@ export default function TaskToolbar({ onAdd, adding, editing, onRefresh, refresh
         >
           <Minus size={15} strokeWidth={1.5} />
         </button>
-        <button className="toolbar__btn" title="Копировать задачу">
-          ⧉
-        </button>
-        <button className="toolbar__btn" title="Настройки">
-          ⚙
-        </button>
       </div>
 
       <div className="toolbar__divider" />
@@ -51,11 +45,11 @@ export default function TaskToolbar({ onAdd, adding, editing, onRefresh, refresh
         ↻
       </button>
 
-      {selectedId !== null && (
+      {/* {selectedId !== null && (
         <span className="toolbar__selected-hint">
           Выбрана задача #{selectedId}
         </span>
-      )}
+      )} */}
     </div>
   );
 }

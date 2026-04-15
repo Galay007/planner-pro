@@ -46,11 +46,11 @@ class TaskRunningService:
                 continue
 
             if task.on_control == "on" and task.task_deps_id is None:
+
                 if  task.is_cleared() and all(task.schedule_execute_params.values()) \
                     or (task.is_added() and task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
            
                     validated_tasks_for_adding.append(task)                  
-
                 elif task.is_in_future() and not task.is_added() and all(task.schedule_future_execute_params.values()) :
                     pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
 
@@ -66,9 +66,9 @@ class TaskRunningService:
                     
 
             if task.on_control == "on" and task.task_deps_id is not None:
-
                 if not all(task.depended_execute_params.values()):
                     first_key_false = next((key for key, value in task.depended_execute_params.items() if not value), None)
+                    print('now here')
                     
                     logger.warning(f'Depended task id {task.task_id} can not be "ON" due to not {first_key_false}')
                     task.added_running_dt = None
@@ -82,7 +82,7 @@ class TaskRunningService:
 
         for task in tasks:
 
-            if task.on_control == "off" and task.task_deps_id is None and task.is_added():
+            if task.on_control == "off" and (task.task_deps_id is None and task.is_added()) or task.is_to_clean():
                 self.taskRunningRepository.delete_by_task_id(task.task_id, current_dt)
                 task.added_running_dt = None
                 self.update_task_status_off(task, TaskStatusEnum.NOT_ACTIVE)

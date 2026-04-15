@@ -36,7 +36,8 @@ class TaskResponse(BaseModel):
     task_name: str
     on_control: str
     owner: str
-    schedule: Optional[str] = None
+    schedule_cron: Optional[str] = None
+    schedule_depend: Optional[str] = None
     next_run_at: Optional[str] = None
     task_group: Optional[str] = None
     task_deps_id: Optional[int] = None

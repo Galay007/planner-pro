@@ -4,7 +4,8 @@ export interface TaskOut {
   on_control: 'on' | 'off'; 
   owner: string;            
   task_group: string | null; 
-  schedule: string | null;  
+  schedule_cron: string | null;  
+  schedule_depend: string | null; 
   next_run_at: string | null;
   task_deps_id: number | null; 
   status: string;           
@@ -19,7 +20,10 @@ export interface TaskOut {
 // Connections
 export type ConnType = 'postgresql' | 'mysql' | 'mariadb' | 'mssql' | 'oracle' | 'sqlite' | 'teradata';
 
+
+
 export interface ConnectionOut {
+  id: number;
   name: string;
   conn_type: ConnType;
   host: string | null;
@@ -39,3 +43,35 @@ export interface ServerMessage {
   detail?: string;
   ok: boolean;
 }
+
+// TaskProperties
+export type TaskType = 'sql' | 'python' | 'bat' ;
+
+
+
+export interface TaskPropsOut {
+  task_id: number;
+  from_dt: string | null;
+  until_dt: string | null;
+  connection_id: number | null;
+  cron_expression: string | null;
+  task_type: TaskType;
+  storage_path: string;
+  file_names: string[] | null;
+  email: string | null;
+  tg_chat_id: string | null;
+  conn_name: string | null;
+}
+
+export interface TaskPropsIn extends TaskPropsOut {
+  root_folder: string;
+}
+
+
+// export interface PropFile {
+//   id: number;
+//   task_id: number;
+//   file_path: string;
+//   file_name: string;
+//   change_dt: string;
+// }

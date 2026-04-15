@@ -27,7 +27,7 @@ export default function ConnectionsPage() {
   function pushMessage(msg: ServerMessage) {
     setServerMessage(msg);
     if (msgTimer.current) clearTimeout(msgTimer.current);
-    msgTimer.current = setTimeout(() => setServerMessage(null), 5000);
+    msgTimer.current = setTimeout(() => setServerMessage(null), 8000);
   }
 
   const fetchNames = useCallback(async (quiet = false) => {

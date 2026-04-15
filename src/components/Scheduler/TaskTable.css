@@ -30,7 +30,7 @@
 }
 
 .table__td {
-  padding: 9px 0px;
+  padding: 7px 0px;
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
   color: var(--color-text);
@@ -51,6 +51,10 @@
 
 .table__td--center {
   text-align: center;
+}
+
+.table__td--name {
+  padding-left: 10px;
 }
 
 .table__row:hover .table__td {
@@ -146,6 +150,7 @@
 .status--stopped {
   background: var(--color-badge-stopped-bg);
   color: var(--color-badge-stopped-text);
+  opacity: 30%;
 }
 
 .status--active {
@@ -242,6 +247,10 @@
   color: var(--color-primary);
 }
 
+.run-btn--settings {
+  color: var(--color-primary);
+}
+
 .run-btn--save {
   color: var(--color-success);
   border-color: var(--color-success);
@@ -280,10 +289,22 @@
   opacity: 0.6;
 }
 
+.edit-warning {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-red);
+  margin-top: 2px;
+}
+
+.custom-checkbox:checked {
+  accent-color: rgb(212, 231, 248);
+}
+
 
 .edit-select {
   width: 60px;
   text-align: center;
+  height: 27px;
   padding: 4px 0px;
   font-size: 13px;
   border: 1px solid var(--color-primary);
@@ -296,7 +317,7 @@
 .edit-input {
   width: 80px;
   text-align: center;
-  height: 25px;
+  height: 27px;
   padding: 4px 4px;
   font-size: 13px;
   border: 1px solid var(--color-primary);
@@ -312,10 +333,12 @@
 }
 
 .edit-input--name {
-  width: 100px; 
+  width: 150px; 
   text-align: left; 
 }
 
 .edit-input--comment {
-  text-align: left;
+  width: 110px; 
+  text-align: left; 
 }
+

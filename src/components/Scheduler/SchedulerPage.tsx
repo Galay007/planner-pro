@@ -34,7 +34,7 @@ export default function SchedulerPage() {
   const pushMessage = useCallback((msg: ServerMessage) => {
     setServerMessage(msg);
     if (msgTimer.current) clearTimeout(msgTimer.current);
-    msgTimer.current = setTimeout(() => setServerMessage(null), 5000);
+    msgTimer.current = setTimeout(() => setServerMessage(null), 8000);
   }, []);
 
   function fetchTasks(isRefresh = false) {
@@ -111,7 +111,7 @@ export default function SchedulerPage() {
       t.on_control.toLowerCase().includes(q) ||
       t.task_name.toLowerCase().includes(q) ||
       (t.task_group ?? '').toLowerCase().includes(q) ||
-      (t.schedule ?? '').toLowerCase().includes(q) ||
+      (t.schedule_cron ?? t.schedule_depend ?? '').toLowerCase().includes(q) ||
       (t.next_run_at ?? '').toLowerCase().includes(q) ||
       (t.last_run_at ?? '').toLowerCase().includes(q) ||
       t.owner.toLowerCase().includes(q) ||

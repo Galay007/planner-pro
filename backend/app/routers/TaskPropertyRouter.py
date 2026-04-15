@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter, Depends, status, Form,UploadFile,File,Path
-from ..schemas.TaskProperty import TaskPropertyCreate
+from ..schemas.TaskProperty import TaskPropertyCreate, TaskPropertyOut
 from ..services.TaskPropertyService import TaskPropertyService
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging
@@ -18,8 +18,8 @@ TaskPropertyRouter = APIRouter(
 def create_connection_handler(
     
     task_id: int = Form(...),
-    from_dt: datetime = Form(...),
-    until_dt: datetime = Form(...),
+    from_dt: Optional[datetime] = Form(None),
+    until_dt: Optional[datetime] = Form(None),
     connection_id: int = Form(...),
     cron_expression: Optional[str] = Form(None),
     task_type: str = Form(...),
@@ -45,13 +45,13 @@ def create_connection_handler(
 
     return new_task_property
 
-@TaskPropertyRouter.get("")
+@TaskPropertyRouter.get("", response_model=List[TaskPropertyOut])
 def get_tasks(taskPropertyService: TaskPropertyService = Depends()):
 
     return taskPropertyService.get_all()
 
 
-@TaskPropertyRouter.get("/{task_id}")
+@TaskPropertyRouter.get("/{task_id}", response_model=TaskPropertyOut)
 def get_task_by_id(task_id: int, taskPropertyService: TaskPropertyService = Depends()):
     task_property = taskPropertyService.get_by_task_id(task_id)
     check_is_none(task_property, task_id)

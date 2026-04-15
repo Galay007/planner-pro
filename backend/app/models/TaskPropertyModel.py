@@ -3,7 +3,8 @@ from sqlalchemy import (
 )
 from ..configs.Database import Base
 from sqlalchemy.orm import Mapped, relationship
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, List
+from pydantic import computed_field
 
 if TYPE_CHECKING:
     from .TaskModel import Task
@@ -29,4 +30,13 @@ class TaskProperty(Base):
     conn: Mapped["Connection"] = relationship(foreign_keys=[connection_id], lazy="select")
     task: Mapped["Task"] = relationship(back_populates="task_props", lazy="select")
 
+    @computed_field
+    @property
+    def conn_name(self) -> Optional[str]:
+        return self.conn.name if self.conn else None
+    
+    @computed_field
+    @property
+    def file_names(self) -> List[str]:
+        return [f.file_name for f in self.files]
 

@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Planner Pro Backend (Python + REST + PostgreSQL 15)
+FastAPI backend for scheduler tasks from `src/pages/Scheduler.tsx` / `src/types/task.ts`.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Stack
+- Python 3.11+
+- FastAPI
+- SQLAlchemy (Core)
+- PostgreSQL 15
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Run PostgreSQL 15
+```bash
+cd backend
+docker compose up -d
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Run APIca
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```shell
+cd backend
+python -m venv .venv
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.venv\Scripts\Activate.ps1 #windowds 
+pip install -r requirements.txt
+cp .env .env
+$env:PYTHONDONTWRITEBYTECODE=1; #powershell чтобы не создавались __pychache__
+set PYTHONDONTWRITEBYTECODE=1 #cmd чтобы не создавались __pychache__
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 
+
+python -m app.run_worker # запуск backend
+
 ```
+
+## Auto migration on startup
+When the API starts, it automatically runs SQL migrations (`CREATE TABLE IF NOT EXISTS`) for:
+- `tasks`
+- `task_properties`
+
+## REST endpoints
+- `GET /health`
+- `GET /tasks`
+- `GET /tasks/{task_id}`
+- `POST /tasks/{task_id}`
+- `PATCH /tasks/{task_id}`
+- `DELETE /tasks/{task_id}`
+- `GET /tasks/{task_id}/properties`
+- `POST /tasks/{task_id}/properties`
+- `DELETE /tasks/{task_id}/properties/{property_key}`
+
+## Schema mapping to frontend
+
+`tasks` fields map to frontend `Task` shape:
+
+- `id`
+- `name`
+- `task_group` ↔ `group`
+- `employee`
+- `control` (`play` / `stop`)
+- `dependency`
+- `status` (`idle` / `running` / `success` / `error`)
+- `notifications`
+- `logs`
+- `comment`
+
+`task_properties` stores per-task properties as key/value pairs:
+- `id`
+- `task_id`
+- `property_key`
+- `property_value`

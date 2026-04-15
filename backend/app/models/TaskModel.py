@@ -58,11 +58,19 @@ class Task(Base):
 
     @computed_field
     @property
-    def schedule(self) -> Optional[str]:
+    def schedule_cron(self) -> Optional[str]:
         if self.task_deps_id is None:
             return self.task_props.cron_expression if self.task_props else None
+        else:
+            return None
+        
+    @computed_field
+    @property
+    def schedule_depend(self) -> Optional[str]:    
         if self.task_deps_id:
             return f"После id {self.task_deps_id}"
+        else:
+            return None
     
     @computed_field
     @property
@@ -193,7 +201,6 @@ class Task(Base):
             return False
     
     def is_no_past(self) -> Boolean:
-        current_dt = datetime.now()
         try:
             return True if self.task_props.from_dt >= self.task_props.from_dt else False
         except Exception:
@@ -245,10 +252,7 @@ class Task(Base):
     
     def is_cron(self) -> Boolean:
         try:
-            if self.task_deps_id is None:
-                return self.is_cron_valid(self.task_props.cron_expression, self.task_id)
-            else:
-                return False
+            return self.is_cron_valid(self.task_props.cron_expression, self.task_id)
         except Exception:
             return False   
         

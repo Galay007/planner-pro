@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { TaskOut, ConnectionOut, ConnectionIn } from '../types';
+import type { TaskOut, ConnectionOut, ConnectionIn, TaskPropsOut } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -76,6 +76,32 @@ export async function createTask(taskId: number): Promise<ApiResult> {
     task_id: taskId,
     task_name: '-',
     owner: '-',
+  });
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+// TaskProperties
+
+export async function getProps(): Promise<{ data: TaskPropsOut[] } & ApiResult> {
+  const response = await api.get<TaskPropsOut[]>('/task_properties');
+  return { data: response.data, status: response.status };
+}
+
+export async function getProp(taskId: number): Promise<{ data: TaskPropsOut } & ApiResult> {
+  const response = await api.get<TaskPropsOut>(`/task_properties/${taskId}`);
+  return { data: response.data, status: response.status };
+}
+
+export async function createProp(formData: FormData): Promise<ApiResult> {
+  const response = await api.post('/task_properties', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return { status: response.status, detail: extractDetail(response.data) };
+}
+
+export async function saveProp(taskId: number, formData: FormData): Promise<ApiResult> {
+  const response = await api.put(`/task_properties/${taskId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
   return { status: response.status, detail: extractDetail(response.data) };
 }

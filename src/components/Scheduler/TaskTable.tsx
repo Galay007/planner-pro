@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import type { TaskOut, ServerMessage } from '../../types';
-import { startTask, stopTask, oneTimeRun, getTasks, 
-  saveTask, parseApiError, startEdit, cancelEdit, sendHeartBeat } from '../../services/api';
+import type { TaskOut, TaskPropsOut, ServerMessage } from '../../types';
+import { startTask, stopTask, oneTimeRun, getTasks,
+  saveTask, parseApiError, startEdit, cancelEdit, sendHeartBeat, getProp, createProp, saveProp } from '../../services/api';
 import { Play, Pencil, Settings, Check, X } from 'lucide-react';
+import TaskPropsModal from './TaskPropsModal';
 import './TaskTable.css';
 
 interface Props {
@@ -31,10 +32,41 @@ const EDITABLE_FIELDS: (keyof EditState)[] = [
   'task_name', 'task_group', 'owner', 'task_deps_id', 'notifications', 'comment',
 ];
 
-export default function TaskTable({ tasks, selectedId, editingId, 
+export default function TaskTable({ tasks, selectedId, editingId,
   setEditingId, onSelect, onServerMessage }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [propsModal, setPropsModal] = useState<{ task: TaskOut; props: TaskPropsOut; isNew: boolean } | null>(null);
+  const hasChangesRef = useRef<() => boolean>(() => false);
+
+  const emptyProps = (task: TaskOut): TaskPropsOut => ({
+    task_id: task.task_id,
+    task_type: 'sql',
+    connection_id: null,
+    conn_name: null,
+    from_dt: null,
+    until_dt: null,
+    cron_expression: null,
+    storage_path: '',
+    file_names: null,
+    email: null,
+    tg_chat_id: null,
+  });
+
+  async function handleSettings(task: TaskOut) {
+    try {
+      const { data } = await getProp(task.task_id);
+      setPropsModal({ task, props: data, isNew: false });
+    } catch (e) {
+      const { status } = parseApiError(e);
+      if (status === 404) {
+        setPropsModal({ task, props: emptyProps(task), isNew: true });
+      } else {
+        const { detail } = parseApiError(e);
+        onServerMessage({ status, text: 'Ошибка загрузки настроек', detail, ok: false });
+      }
+    }
+  }
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -77,7 +109,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
   async function handleSave(edited: TaskOut) {
     const original = tasks.find(t => t.task_id === edited.task_id);
     const hasChanges = !original || EDITABLE_FIELDS.some(f => original[f] !== edited[f]);
-    if (!hasChanges) { stopEditing(); return; }
+    if (!hasChanges) { handleCancel(edited.task_id); return; }
     try {
       const { status } = await saveTask(edited.task_id, edited);
       onServerMessage({ status, text: `Задача #${edited.task_id} сохранена`, ok: true });
@@ -174,6 +206,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
   }
 
   return (
+    <>
     <div className="table-wrap">
       <table className="task-table">
         <thead>
@@ -184,8 +217,8 @@ export default function TaskTable({ tasks, selectedId, editingId,
             <ColHeader label="Группа" col="task_group" />
             <ColHeader label="Владелец" col="owner" />
             <ColHeader label="Статус" col="status" />
-            <ColHeader label="Расписание" col="schedule" />
-            <ColHeader label="След. запуск" col="schedule" />
+            <ColHeader label="Расписание" col="schedule_cron" />
+            <ColHeader label="След. запуск" col="next_run_at" />
             <ColHeader label="Посл. запуск" col="last_run_at" />
             <ColHeader label="Связь с ID" col="task_deps_id" />
             <ColHeader label="Уведомл." col="notifications" />
@@ -206,19 +239,47 @@ export default function TaskTable({ tasks, selectedId, editingId,
                 task={task}
                 isSelected={selectedId === task.task_id}
                 editingId={editingId}
-                availableDepsIds={tasks.filter(t => t.task_id !== task.task_id).map(t => t.task_id)}
+                hasChangesRef={hasChangesRef}
+                availableDepsIds={tasks
+                                  .filter(t => t.task_id !== task.task_id)
+                                  .map(t => t.task_id)
+                                  .sort((a, b) => a - b)}
                 onControl={handleControl}
                 onOneTimeRun={handleOneTimeRun}
                 onEdit={handleEdit}
-                onSave={handleSave}
+                onSaveTask={handleSave}
                 onCancel={handleCancel}
                 onSelect={onSelect}
+                onSettings={handleSettings}
               />
             ))
           )}
         </tbody>
       </table>
     </div>
+
+      {propsModal && (
+        <TaskPropsModal
+          task={propsModal.task}
+          props={propsModal.props}
+          onClose={() => setPropsModal(null)}
+          isEditing={editingId === propsModal.task.task_id}
+          onEdit={() => { onSelect(propsModal.task.task_id); setEditingId(propsModal.task.task_id); void handleEdit(propsModal.task); }}
+          onCancelEdit={() => {
+            if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
+            setPropsModal(null);
+          }}
+          onSaveProp={async (formData) => {
+            const { status } = propsModal.isNew
+              ? await createProp(formData)
+              : await saveProp(propsModal.task.task_id, formData);
+            onServerMessage({ status, text: `Настройки задачи #${propsModal.task.task_id} сохранены`, ok: true });
+            if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
+            setPropsModal(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -227,15 +288,17 @@ interface RowProps {
   isSelected: boolean;
   editingId: number | null;
   availableDepsIds: number[];
+  hasChangesRef: { current: () => boolean };
   onControl: (task: TaskOut) => void;
   onOneTimeRun: (taskId: number) => void;
   onEdit: (task: TaskOut) => void;
-  onSave: (task: TaskOut) => void;
+  onSaveTask: (task: TaskOut) => void;
   onCancel: (taskId: number) => void;
   onSelect: (id: number | null) => void;
+  onSettings: (task: TaskOut) => void;
 }
 
-function TaskRow({ task, isSelected, editingId, availableDepsIds, onControl, onOneTimeRun, onEdit, onSave, onCancel, onSelect }: RowProps) {
+function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef, onControl, onOneTimeRun, onEdit, onSaveTask, onCancel, onSelect, onSettings }: RowProps) {
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
   const isEditing = editingId === task.task_id;
   const isLocked = editingId !== null && !isEditing;
@@ -262,6 +325,13 @@ function TaskRow({ task, isSelected, editingId, availableDepsIds, onControl, onO
     }
   }, [isEditing]);
 
+  useEffect(() => {
+    if (isEditing) {
+      hasChangesRef.current = () =>
+        EDITABLE_FIELDS.some(f => task[f] !== editState[f]);
+    }
+  }, [isEditing, editState]);
+
   const statusClass =
     new Date(task.run_expire_at) >= new Date() ? 'status--running'
     : new Date(task.edit_expire_at) >= new Date() ? 'status--editing'
@@ -276,7 +346,7 @@ const statusLabel =
     : task.status === 'running' ? 'Running'
     : task.status === 'error' ? 'Ошибка'
     : task.status === 'active' ? 'Active'
-    : task.status === 'not active' ? 'not act'
+    : task.status === 'not active' ? 'No active'
     : task.status;
 
   const isOn = task.on_control === 'on';
@@ -285,7 +355,7 @@ const statusLabel =
   function handleRowClick(e: React.MouseEvent) {
     if (isLocked) return;
     if ((e.target as HTMLElement).closest('button, input, a')) return;
-    onSelect(isSelected ? null : task.task_id);
+    onSelect(task.task_id);
   }
 
   return (
@@ -320,7 +390,7 @@ const statusLabel =
         </span>
       </td>
 
-      <td className="table__td table__td--center">
+      <td className="table__td table__td--name">
         {isEditing
           ? <input className="edit-input edit-input--name" 
                 value={editState.task_name} 
@@ -343,7 +413,7 @@ const statusLabel =
         <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
       </td>
 
-      <td className="table__td table__td--center">{task.schedule ?? <span className="muted"></span>}</td>
+      <td className="table__td table__td--center">{task.schedule_cron ?? task.schedule_depend ?? <span className="muted"></span>}</td>
       <td className="table__td table__td--center">{task.next_run_at 
        ? (() => { const [d, t] = task.next_run_at!.split(' '); const [day, mon, yr] = d.split('.'); return `${day}.${mon}.${yr.slice(2)} ${t.slice(0, 5)}`; })()
         : <span className="muted"></span>}
@@ -355,25 +425,29 @@ const statusLabel =
       <td className="table__td table__td--center">
         {isEditing
           ? (
-            <select className="edit-select" 
-              value={editState.task_deps_id ?? ''} 
-              onChange={e => setEditState(s => ({ ...s, task_deps_id: e.target.value === '' 
-              ? null : Number(e.target.value) }))}>
-              <option value="">пусто</option>
-                {availableDepsIds.map(id => <option key={id} value={id}>{id}
-
-              </option>)}
-            </select>
+            <>
+              <select className="edit-select"
+                value={editState.task_deps_id ?? ''}
+                onChange={e => setEditState(s => ({ ...s, task_deps_id: e.target.value === ''
+                ? null : Number(e.target.value) }))}>
+                <option value="">пусто</option>
+                {availableDepsIds.map(id => <option key={id} value={id}>{id}</option>)}
+              </select>
+              {editState.task_deps_id !== null && task.schedule_cron !== null && (
+                <div className="edit-warning">Cron {task.schedule_cron} будет удалён!</div>
+              )}
+            </>
           )
           : (task.task_deps_id ?? <span className="muted"></span>)}
       </td>
 
       <td className="table__td table__td--center">
         <input
+          className="custom-checkbox"
           type="checkbox"
           checked={isEditing ? editState.notifications : task.notifications}
           readOnly={!isEditing}
-          onChange={isEditing ? e => 
+          onChange={isEditing ? e =>
             setEditState(s => ({ ...s, notifications: e.target.checked })) : undefined}
         />
       </td>
@@ -395,7 +469,7 @@ const statusLabel =
               <button
                 className="run-btn run-btn--save"
                 title="Сохранить"
-                onClick={() => onSave({ ...task, ...editState })}
+                onClick={() => onSaveTask({ ...task, ...editState })}
               >
                 <Check size={11} strokeWidth={2.5} />
               </button>
@@ -428,7 +502,8 @@ const statusLabel =
               </button>
             </>
           )}
-          <button className="run-btn run-btn--settings" title="Настройки" disabled={isLocked}>
+          <button className="run-btn run-btn--settings" title="Настройки" disabled={isLocked}
+            onClick={() => onSettings(task)}>
             <Settings size={11.5} strokeWidth={1.8} />
           </button>
         </div>
