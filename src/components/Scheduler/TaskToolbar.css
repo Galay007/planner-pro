@@ -11,7 +11,7 @@
   background: var(--color-toolbar-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 4px;
+  padding: 2px;
   transition: background 0.2s, border-color 0.2s;
 }
 

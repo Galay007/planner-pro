@@ -14,18 +14,21 @@ class SSEManager:
         self.clients.append(queue)
 
         client_id = id(queue)
-        print(f"🔗 Client {client_id} connected") 
+        print(f"🔗 Client {client_id} connected")
 
         try:
+            # чтобы клиент сразу понял, что соединение открыто
+            yield "event: connected\ndata: ok\n\n"
+
             while True:
                 if await request.is_disconnected():
                     break
-                event = await queue.get()
 
+                event = await queue.get()
                 if event is None:
                     break
 
-                yield f"{event}\n\n"
+                yield event
         except asyncio.CancelledError:
             return
         except GeneratorExit:
@@ -33,19 +36,27 @@ class SSEManager:
         finally:
             if queue in self.clients:
                 self.clients.remove(queue)
+            print(f"Client {client_id} disconnected")
 
     async def broadcast(self, data: str, event_type: str = default_type):
+        dead_clients = []
+
         for queue in self.clients:
             try:
-                await queue.put_nowait(f"event: {event_type}\ndata: {data}\n\n")
+                queue.put_nowait(f"event: {event_type}\ndata: {data}\n\n")
             except Exception:
-                pass  
+                dead_clients.append(queue)
+
+        for queue in dead_clients:
+            if queue in self.clients:
+                self.clients.remove(queue)
 
     async def shutdown(self):
         for queue in self.clients[:]:
             try:
-                await queue.put_nowait(None) 
+                queue.put_nowait(None)
             except Exception:
                 pass
+
         self.clients.clear()
         await asyncio.sleep(0.01)

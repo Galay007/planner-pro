@@ -85,6 +85,15 @@ export default function TaskTable({ tasks, selectedId, editingId,
     return a.task_id - b.task_id;
   });
 
+  useEffect(() => {
+    if (editingId === null) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !hasChangesRef.current()) void handleCancel(editingId!);
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [editingId]);
+
   async function handleOneTimeRun(taskId: number) {
     try {
       const { status } = await oneTimeRun(taskId);
@@ -267,7 +276,6 @@ export default function TaskTable({ tasks, selectedId, editingId,
           onEdit={() => { onSelect(propsModal.task.task_id); setEditingId(propsModal.task.task_id); void handleEdit(propsModal.task); }}
           onCancelEdit={() => {
             if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
-            setPropsModal(null);
           }}
           onSaveProp={async (formData) => {
             const { status } = propsModal.isNew

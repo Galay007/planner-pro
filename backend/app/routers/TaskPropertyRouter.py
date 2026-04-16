@@ -71,10 +71,13 @@ def update_task_property(
     tg_chat_id: Optional[str] = Form(None),
     root_folder: Optional[str] = Form(None),
     files: Optional[List[UploadFile]] = File(None),
+    is_manual: bool = Form(),
+    manual_script: Optional[str] = Form(None),
     taskPropertyService: TaskPropertyService = Depends()
     ):
     
-
+    print(is_manual)
+    print(manual_script)
     # from pathlib import Path
     # root_folder = str(Path(root_folder).as_posix())
 

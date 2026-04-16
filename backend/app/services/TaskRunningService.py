@@ -68,7 +68,6 @@ class TaskRunningService:
             if task.on_control == "on" and task.task_deps_id is not None:
                 if not all(task.depended_execute_params.values()):
                     first_key_false = next((key for key, value in task.depended_execute_params.items() if not value), None)
-                    print('now here')
                     
                     logger.warning(f'Depended task id {task.task_id} can not be "ON" due to not {first_key_false}')
                     task.added_running_dt = None

@@ -12,7 +12,7 @@ interface Props {
   pushMessage: (msg: ServerMessage) => void;
 }
 
-type FormState = Omit<ConnectionIn, 'port'> & { port: number | '' | null };
+type FormState = Omit<ConnectionIn, 'port' | 'id'> & { port: number | '' | null };
 
 const defaultForm = (): FormState => ({
   name: '',
@@ -25,7 +25,7 @@ const defaultForm = (): FormState => ({
   db_path: null,
 });
 
-function toPayload(f: FormState): ConnectionIn {
+function toPayload(f: FormState): Omit<ConnectionIn, 'id'> {
   return {
     ...f,
     port: (f.port === '' || f.port === null) ? null : f.port,
@@ -106,8 +106,8 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
       setTestPassed(ok);
       return ok;
     } catch (e) {
-      const err = parseApiError(e);
-      pushMessage({ status: err.status, text: 'Ошибка теста', detail: err.detail, ok: false });
+      //const err = parseApiError(e);
+      //pushMessage({ status: err.status, text: 'Ошибка теста', detail: err.detail, ok: false });
       setTestPassed(false);  // false = тест запущен, провален
       return false;
     } finally {

@@ -117,7 +117,7 @@ export async function getConnection(name: string): Promise<{ data: ConnectionOut
   return { data: response.data, status: response.status };
 }
 
-export async function createConnection(body: ConnectionIn): Promise<ApiResult> {
+export async function createConnection(body: Omit<ConnectionIn, 'id'>): Promise<ApiResult> {
   const response = await api.post('/connections', body);
   return { status: response.status, detail: extractDetail(response.data) };
 }

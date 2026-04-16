@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { TaskOut, TaskPropsOut, TaskType, ConnectionOut } from '../../types';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil} from 'lucide-react';
 import { getConnections } from '../../services/api';
 import './TaskPropsModal.css';
 
@@ -24,6 +24,8 @@ type PropEditState = {
   tg_chat_id: string;
   root_folder: string;
   files: File[];
+  manual_script: string;
+  active_tab: 'attach' | 'create';
 };
 
 const TASK_TYPES: TaskType[] = ['sql', 'python', 'bat'];
@@ -72,6 +74,8 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
     tg_chat_id: props.tg_chat_id ?? '',
     root_folder: props.storage_path ?? '',
     files: [],
+    manual_script: '',
+    active_tab: 'attach',
   });
 
   useEffect(() => {
@@ -87,6 +91,8 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
         tg_chat_id: props.tg_chat_id ?? '',
         root_folder: props.storage_path ?? '',
         files: [],
+        manual_script: '',
+        active_tab: 'attach',
       });
     }
   }, [isEditing]);
@@ -111,6 +117,14 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
       if (editState.files.length > 0) {
         editState.files.forEach(f => fd.append('files', f));
       }
+      if (editState.active_tab === 'attach') {
+        fd.append('is_manual', 'false');
+      } else if (editState.manual_script) {
+        fd.append('is_manual', 'true');
+        fd.append('manual_script', editState.manual_script);
+      } else {
+        fd.append('is_manual', 'false');
+      }
       await onSaveProp(fd);
     } finally {
       setSaving(false);
@@ -131,7 +145,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
 
         <div className="props-modal__header">
           <span className="props-modal__title">
-            Задача #{task.task_id} — {task.task_name}
+            Задача #{task.task_id} - {task.task_name}
           </span>
           <button className="props-modal__close" onClick={onClose}>✕</button>
         </div>
@@ -141,6 +155,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           <div className="props-modal__left">
 
             <div className="props-modal__section">
+              <Divider label="Обработчик" />
               {isEditing ? (
                 <>
                   <EditRow label="Тип">
@@ -198,18 +213,18 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
               {isEditing ? (
                 <>
                   <EditRow label="Email">
-                    <input className="props-modal__input" type="text" value={editState.email}
+                    <input className="props-modal__input" type="text" placeholder='Введите email...' value={editState.email}
                       onChange={e => set('email', e.target.value)} />
                   </EditRow>
-                  <EditRow label="Telegram">
-                    <input className="props-modal__input" type="text" value={editState.tg_chat_id}
+                  <EditRow label="Telegram ID">
+                    <input className="props-modal__input" placeholder='Введите chat-id...' type="text" value={editState.tg_chat_id}
                       onChange={e => set('tg_chat_id', e.target.value)} />
                   </EditRow>
                 </>
               ) : (
                 <>
                   <Row label="Email" value={props.email} />
-                  <Row label="Telegram" value={props.tg_chat_id} />
+                  <Row label="Telegram ID" value={props.tg_chat_id} />
                 </>
               )}
             </div>
@@ -219,52 +234,86 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           <div className="props-modal__right">
             {isEditing ? (
               <>
-                <Divider label="Путь" />
-                <EditRow label="">
-                  <input className="props-modal__input" type="text"
-                    placeholder="Путь к папке на сервере"
-                    value={editState.root_folder}
-                    onChange={e => set('root_folder', e.target.value)} />
-                </EditRow>
-                <Divider label="Файлы" />
-                <label className="props-modal__file-btn">
-                  Выбрать файлы
-                  <input type="file" multiple style={{ display: 'none' }}
-                    onChange={e => set('files', Array.from(e.target.files ?? []))} />
-                </label>
-                <div className="props-modal__files">
-                  {editState.files.length > 0
-                    ? [...editState.files].sort((a, b) => a.name.localeCompare(b.name)).map((f, i) => (
-                        <span key={i} className="props-modal__file">
-                          <span className="props-modal__file-num">{i + 1}.</span>{f.name}
-                        </span>
-                      ))
-                    : (props.file_names ?? []).length > 0
+                <div className="props-modal__tabs">
+                  <button
+                    className={`props-modal__tab${editState.active_tab === 'attach' ? ' props-modal__tab--active' : ''}`}
+                    onClick={() => set('active_tab', 'attach')}>
+                    Вложить
+                  </button>
+                  <button
+                    className={`props-modal__tab${editState.active_tab === 'create' ? ' props-modal__tab--active' : ''}`}
+                    onClick={() => set('active_tab', 'create')}>
+                    Создать
+                  </button>
+                </div>
+                {editState.active_tab === 'attach' ? (
+                  <>
+                    <div className="props-modal__section">
+                      <Divider label="Путь" />
+                      <EditRow label="">
+                        <input className="props-modal__input" type="text"
+                          placeholder="Путь к папке на сервере"
+                          value={editState.root_folder}
+                          onChange={e => set('root_folder', e.target.value)} />
+                      </EditRow>
+                    </div>
+                    <div className="props-modal__section props-modal__section--grow props-modal__divider--mt">
+                      <Divider label="Файлы" />
+                      <label className="props-modal__file-btn">
+                        Выбрать файлы...
+                        <input type="file" multiple style={{ display: 'none' }}
+                          onChange={e => set('files', Array.from(e.target.files ?? []))} />
+                      </label>
+                      <div className="props-modal__files">
+                        {editState.files.length > 0
+                          ? [...editState.files].sort((a, b) => a.name.localeCompare(b.name)).map((f, i) => (
+                              <span key={i} className="props-modal__file">
+                                <span className="props-modal__file-num">{i + 1}.</span>{f.name}
+                              </span>
+                            ))
+                          : (props.file_names ?? []).length > 0
+                            ? [...(props.file_names ?? [])].sort((a, b) => a.localeCompare(b)).map((f, i) => (
+                                <span key={i} className="props-modal__file props-modal__file--existing">
+                                  <span className="props-modal__file-num">{i + 1}.</span>{f}
+                                </span>
+                              ))
+                            : <span className="props-modal__value props-modal__value--muted">Нет файлов</span>
+                        }
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="props-modal__section props-modal__section--grow">
+                    <Divider label="Скрипт" />
+                    <textarea
+                      className="props-modal__script"
+                      value={editState.manual_script}
+                      onChange={e => set('manual_script', e.target.value)}
+                      placeholder="Введите скрипт..."
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="props-modal__section">
+                  <Divider label="Путь" />
+                  {props.storage_path && (
+                    <span className="props-modal__path">{props.storage_path}</span>
+                  )}
+                </div>
+                <div className="props-modal__section props-modal__section--grow props-modal__divider--mt">
+                  <Divider label="Файлы" />
+                  <div className="props-modal__files">
+                    {(props.file_names ?? []).length > 0
                       ? [...(props.file_names ?? [])].sort((a, b) => a.localeCompare(b)).map((f, i) => (
-                          <span key={i} className="props-modal__file props-modal__file--existing">
+                          <span key={i} className="props-modal__file">
                             <span className="props-modal__file-num">{i + 1}.</span>{f}
                           </span>
                         ))
                       : <span className="props-modal__value props-modal__value--muted">Нет файлов</span>
-                  }
-                </div>
-              </>
-            ) : (
-              <>
-                <Divider label="Путь" />
-                {props.storage_path && (
-                  <span className="props-modal__path">{props.storage_path}</span>
-                )}
-                <Divider label="Файлы" />
-                <div className="props-modal__files">
-                  {(props.file_names ?? []).length > 0
-                    ? [...(props.file_names ?? [])].sort((a, b) => a.localeCompare(b)).map((f, i) => (
-                        <span key={i} className="props-modal__file">
-                          <span className="props-modal__file-num">{i + 1}.</span>{f}
-                        </span>
-                      ))
-                    : <span className="props-modal__value props-modal__value--muted">Нет файлов</span>
-                  }
+                    }
+                  </div>
                 </div>
               </>
             )}
@@ -276,11 +325,9 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           {isEditing ? (
             <>
               <button className="props-modal__btn props-modal__btn--save" onClick={handleSave} disabled={saving}>
-                <Check size={13} strokeWidth={2.5} />
                 {saving ? 'Сохранение...' : 'Сохранить'}
               </button>
               <button className="props-modal__btn props-modal__btn--cancel" onClick={onCancelEdit}>
-                <X size={13} strokeWidth={2.5} />
                 Отмена
               </button>
             </>

@@ -5,9 +5,9 @@ const SSE_URL = 'http://192.168.1.67:8000/sse';
 let eventSource: EventSource | null = null;
 
 export interface SSEHandlers {
-  onError: (error: Event) => void;
-  onOpen: () => void;
-  onRefresh: () => void;
+  onError?: (error: Event) => void;
+  onOpen?: () => void;
+  onRefresh?: () => void;
 }
 
 export function connectSSE(handlers: SSEHandlers): EventSource {
@@ -18,19 +18,25 @@ export function connectSSE(handlers: SSEHandlers): EventSource {
   eventSource = new EventSource(SSE_URL);
 
   eventSource.onopen = () => {
-    console.log('[SSE] Connection opened');
+    console.log('[SSE] connection opened');
     handlers.onOpen?.();
   };
 
   eventSource.onerror = (error) => {
-    console.error('[SSE] Connection error', error);
+    Logger.error('[SSE] connection error', error);
     handlers.onError?.(error);
   };
 
-  let opened = false;
+  // eventSource.onmessage = (event) => {
+  //   Logger.info('[SSE] message received', event.data);
+  // };
+
+  // eventSource.addEventListener('connected', (event) => {
+  //   Logger.info('[SSE] connected event received', event);
+  // });
+
   eventSource.addEventListener('task_update', () => {
-    Logger.info('[SSE] update event received');
-    if (!opened) { opened = true; handlers.onOpen?.(); }
+    Logger.info('[SSE] task_update event received');
     handlers.onRefresh?.();
   });
 
@@ -41,6 +47,6 @@ export function disconnectSSE(): void {
   if (eventSource) {
     eventSource.close();
     eventSource = null;
-    console.log('[SSE] Connection closed');
+    Logger.info('[SSE] connection closed');
   }
 }

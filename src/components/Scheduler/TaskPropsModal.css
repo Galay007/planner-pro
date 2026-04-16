@@ -21,14 +21,16 @@
   display: flex;
   flex-direction: column;
   animation: slide-in 0.15s ease;
+  overflow: hidden;
 }
 
 .props-modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--color-border);
+  background: var(--color-table-header-bg);
 }
 
 .props-modal__title {
@@ -72,10 +74,11 @@
 .props-modal__right {
   flex: 1;
   border-left: 1px solid var(--color-border);
-  padding: 15px 14px;
+  padding: 14px 15px 0px 14px;
   display: flex;
   flex-direction: column;
   gap: 15px;
+  min-height: 0;
 }
 
 .props-modal__path {
@@ -97,7 +100,7 @@
   border: 1px solid var(--color-primary);
   border-radius: 4px;
   background: var(--color-white);
-  color: var(--color-text);
+  color: var(--color-text); 
 }
 
 .props-modal__input[type="datetime-local"] {
@@ -109,16 +112,32 @@
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid var(--color-primary);
+  border: 1px solid var(--color-success);
   border-radius: 4px;
-  color: var(--color-primary);
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.run-btn--save {
+  color: var(--color-success);
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.run-btn--save:hover {
+  background: var(--color-ctrl-success-border);
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .props-modal__file-btn:hover {
-  background: var(--color-primary-light);
+  background: var(--color-ctrl-success-border);
+  color: var(--color-success);
+  border-color: var(--color-success);
+  opacity: 0.9;
 }
 
 .props-modal__files {
@@ -166,11 +185,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 10px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-primary);
+  opacity: 70%;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.20em;
 }
 
 .props-modal__divider::after {
@@ -178,6 +199,10 @@
   flex: 1;
   height: 1px;
   background: var(--color-border);
+}
+
+.props-modal__divider--mt {
+  margin-top: 15px;
 }
 
 .props-modal__file {
@@ -206,7 +231,7 @@
 .props-modal__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 7px;
   padding: 12px 18px;
 }
 
@@ -230,7 +255,7 @@
 
 .props-modal__btn--ok {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-white);
   border: 1px solid transparent;
 }
 
@@ -239,11 +264,8 @@
 }
 
 .props-modal__btn--save {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: 1px solid transparent;
 }
 
@@ -256,16 +278,68 @@
 }
 
 .props-modal__btn--cancel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-red);
+  color: var(--color-text-muted);
   background: transparent;
-  border: 1px solid var(--color-red);
+  border: 1px solid var(--color-border);
 }
 
 .props-modal__btn--cancel:hover {
-  background: var(--color-red-light);
+  background: var(--color-table-row-hover);
+}
+
+.props-modal__tabs {
+  display: flex;
+  gap: 0px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0px;
+  flex-shrink: 0;
+  margin-inline: -14px;
+  padding-inline: 0px;
+}
+
+.props-modal__tab {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 7px 7px 0px 0px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.props-modal__tab:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.props-modal__tab--active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+.props-modal__section--grow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.props-modal__script {
+  flex: 1;
+  resize: none;
+  padding: 8px;
+  margin-top: -5px;
+  font-size: 12px;
+  font-family: monospace;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  background: var(--color-white);
+  color: var(--color-text);
+  min-height: 0;
 }
 
 @keyframes fade-in {

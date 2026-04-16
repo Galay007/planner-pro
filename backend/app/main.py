@@ -23,7 +23,7 @@ import asyncio
 
 
 is_shutting_down = False
-see_manager: SSEManager
+sse_manager: SSEManager | None = None
 
 logging.basicConfig(
     level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
@@ -76,12 +76,16 @@ def health() -> dict[str, str]:
 
 @app.get("/sse")
 async def sse_endpoint(request: Request):
+    if sse_manager is None:
+        raise RuntimeError("SSE manager is not initialized")
+    
     return StreamingResponse(
         sse_manager.add_client(request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
         }
     )
 
@@ -93,15 +97,14 @@ async def emit_event(request: EmitRequest ):
 
 
 if __name__ == "__main__":
-    host = settings.host
-    port = settings.port
     uvicorn.run(
         "app.main:app", 
-        host=host,
-        port=port,
-        reload=False,   
+        host = settings.host,
+        port =settings.port,
+        reload=True,   
         log_level="info"
     )
+
 
 
 
