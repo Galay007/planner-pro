@@ -9,11 +9,23 @@
   animation: fade-in 0.15s ease;
 }
 
+.props-modal-resizer {
+  resize: horizontal;
+  overflow: hidden;
+  width: 620px;
+  min-width: 39vw;
+  max-width: 95vw;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  animation: slide-in 0.15s ease;
+}
+
 .props-modal {
   background: var(--color-toolbar-bg);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  width: 620px;
+  width: 100%;
+  min-width: 39vw;
   max-width: 95vw;
   height: 62.5vh;
   max-height: 90vh;
@@ -191,7 +203,7 @@
   color: var(--color-primary);
   opacity: 70%;
   text-transform: uppercase;
-  letter-spacing: 0.20em;
+  letter-spacing: 0.15em;
 }
 
 .props-modal__divider::after {
@@ -293,8 +305,8 @@
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0px;
   flex-shrink: 0;
-  margin-inline: -14px;
-  padding-inline: 0px;
+  /* margin-inline: -14px;
+  padding-inline: 0px; */
 }
 
 .props-modal__tab {

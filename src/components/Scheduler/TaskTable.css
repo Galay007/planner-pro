@@ -2,17 +2,24 @@
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  overflow-x: auto;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
   transition: background 0.2s, border-color 0.2s;
+  margin-right: -24px;
 }
 
 .task-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13px;
 }
 
 .table__th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 10px 12px;
   text-align: center;
   font-weight: 600;
@@ -23,6 +30,25 @@
   cursor: pointer;
   user-select: none;
   transition: background 0.15s;
+}
+
+.table-wrap::-webkit-scrollbar {
+  width: 15px;
+  height: 6px;
+}
+
+.table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+  margin-top: 37px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
 }
 
 .table__th:hover {
@@ -42,6 +68,8 @@
   color: var(--color-text-muted);
   width: 50px;
   text-align: center;
+  position: relative;
+  left: -2px;
 }
 
 .table__td--controls {

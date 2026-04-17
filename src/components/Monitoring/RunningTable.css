@@ -1,0 +1,105 @@
+.running-table__wrap {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-right: -24px;
+}
+
+.running-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.running-table__th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-table-header-bg);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.15s;
+}
+
+.running-table__th:hover {
+  background: var(--color-table-row-hover);
+}
+
+.running-table__sort {
+  opacity: 0.9;
+  font-size: 11px;
+}
+
+.running-table__sort--inactive {
+  opacity: 0.3;
+}
+
+.running-table__td {
+  padding: 6px 10px;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.running-table__td--status {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.running-table__td--center {
+  text-align: center;
+}
+
+.running-table__td--id {
+  font-weight: 400;
+  color: var(--color-text-muted);
+  width: 50px;
+  text-align: center;
+  position: relative;
+  left: -2px;
+}
+
+.running-table__td--success { color: var(--color-success); }
+.running-table__td--error   { color: var(--color-red); }
+.running-table__td--skipped { color: #64748b; }
+.running-table__td--pending { color: #854d0e; }
+
+.running-table__wrap::-webkit-scrollbar {
+  width: 15px;
+  height: 6px;
+}
+
+.running-table__wrap::-webkit-scrollbar-track {
+  background: transparent;
+  margin-top: 37px;
+}
+
+.running-table__wrap::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 3px;
+}
+
+.running-table__wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+.running-table__empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}

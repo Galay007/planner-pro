@@ -1,5 +1,5 @@
 from fastapi import HTTPException, APIRouter, Depends, status, Form,UploadFile,File,Path
-from ..schemas.TaskProperty import TaskPropertyCreate, TaskPropertyOut
+from ..schemas.TaskPropertySchema import TaskPropertyCreate, TaskPropertyOut
 from ..services.TaskPropertyService import TaskPropertyService
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import logging

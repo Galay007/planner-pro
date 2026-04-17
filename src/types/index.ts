@@ -75,3 +75,19 @@ export interface TaskPropsIn extends TaskPropsOut {
 //   file_name: string;
 //   change_dt: string;
 // }
+
+export interface TaskRunningOut {
+  task_name: string | null;
+  task_id: number;
+  parent_id: number | null;
+  trigger_mode: string | null;
+  schedule_dt: string;  
+  created_dt: string;  
+  worker_id: number | null;
+  started_str: string | null;
+  finished_str: string | null;
+  duration: string | null;
+  attempt_count: number | null;
+  next_retry_at: string | null;
+  status: string | null;
+}

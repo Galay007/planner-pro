@@ -229,7 +229,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
             <ColHeader label="Расписание" col="schedule_cron" />
             <ColHeader label="След. запуск" col="next_run_at" />
             <ColHeader label="Посл. запуск" col="last_run_at" />
-            <ColHeader label="Связь с ID" col="task_deps_id" />
+            <ColHeader label="Родитель" col="task_deps_id" />
             <ColHeader label="Уведомл." col="notifications" />
             <th className="table__th">Логи</th>
             <th className="table__th">Комментарий</th>
@@ -273,7 +273,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
           props={propsModal.props}
           onClose={() => setPropsModal(null)}
           isEditing={editingId === propsModal.task.task_id}
-          onEdit={() => { onSelect(propsModal.task.task_id); setEditingId(propsModal.task.task_id); void handleEdit(propsModal.task); }}
+          onEdit={() => { onSelect(propsModal.task.task_id); void handleEdit(propsModal.task); }}
           onCancelEdit={() => {
             if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
           }}

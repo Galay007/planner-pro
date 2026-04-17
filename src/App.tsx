@@ -5,6 +5,7 @@ import SchedulerPage from './components/Scheduler/SchedulerPage';
 import ConnectionsPage from './components/Connections/ConnectionsPage';
 import MigrationDBPage from './components/MigrationDB/MigrationDBPage';
 import MigrationCSVPage from './components/MigrationCSV/MigrationCSVPage';
+import MonitoringPage from './components/Monitoring/MonitoringPage';
 
 const router = createBrowserRouter([
   {
@@ -15,6 +16,7 @@ const router = createBrowserRouter([
       { path: 'connections', element: <ConnectionsPage /> },
       { path: 'migration-db', element: <MigrationDBPage /> },
       { path: 'migration-csv', element: <MigrationCSVPage /> },
+      { path: 'monitoring', element: <MonitoringPage /> },
     ],
   },
 ]);

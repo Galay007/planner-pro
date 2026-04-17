@@ -8,6 +8,7 @@ from cronsim import CronSim
 import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -46,13 +47,15 @@ class TaskRunningService:
                 continue
 
             if task.on_control == "on" and task.task_deps_id is None:
-
-                if  task.is_cleared() and all(task.schedule_execute_params.values()) \
+                
+                if not task.is_added() and all(task.schedule_future_execute_params.values()) :
+                    continue # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
+            
+                elif  task.is_cleared() and all(task.schedule_execute_params.values()) \
                     or (task.is_added() and task.added_running_dt and task.added_running_dt.date() < current_dt.date()):
            
                     validated_tasks_for_adding.append(task)                  
-                elif task.is_in_future() and not task.is_added() and all(task.schedule_future_execute_params.values()) :
-                    pass # не добавляем, но оставляем вкл и ждем, т.к. время еще не наступило
+                
 
                 elif task.is_to_clean() or not all(task.schedule_execute_params.values()):
                     first_key_false = 'valid_to_clean'
@@ -167,6 +170,8 @@ class TaskRunningService:
 
         return today_executions
 
+    def get_all(self)-> List[TaskRunning]:
+        return self.taskRunningRepository.get_all()
     
 
 

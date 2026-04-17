@@ -77,7 +77,7 @@ class Task(Base):
     def next_run_at(self) -> Optional[str]:
         try:
             if self.on_control == 'on' and self.task_deps_id is None:
-                cs = CronSim(self.task_props.cron_expression, datetime.now())
+                cs = CronSim(self.task_props.cron_expression, max(datetime.now(), self.task_props.from_dt))
                 dt = next(cs)
                 return dt.strftime("%d.%m.%Y %H:%M:%S")
             return None
@@ -129,6 +129,10 @@ class Task(Base):
   
     def check_valid_before_on_control(self) -> tuple[Boolean,str]:
         if self.task_deps_id is None:
+
+            if not self.is_added() and all(self.schedule_future_execute_params.values()):
+                return True, ''
+
             if self.is_to_clean() or not all(self.schedule_execute_params.values()):
                 
                 first_key_false = 'valid_to_clean'
@@ -169,6 +173,7 @@ class Task(Base):
     @property
     def schedule_future_execute_params(self):
         return {
+            "valid_future": self.is_in_future(),
             "valid_cron": self.is_cron(),
             "valid_storage_path": self.is_storage_path(),
             "valid_connection": self.is_connection()
@@ -186,8 +191,8 @@ class Task(Base):
     def schedule_execute_params(self):
         return {
             "valid_dates": self.is_dates(),
-            "valid_now_dates": self.is_in_now_dates(),
             "valid_no_past": self.is_no_past(),
+            "valid_now_dates": self.is_in_now_dates(),
             "valid_no_depend": self.is_no_depend(),
             "valid_cron": self.is_cron(),
             "valid_storage_path": self.is_storage_path(),
@@ -202,7 +207,8 @@ class Task(Base):
     
     def is_no_past(self) -> Boolean:
         try:
-            return True if self.task_props.from_dt >= self.task_props.from_dt else False
+            current_dt = datetime.now()
+            return True if self.task_props.until_dt >= current_dt else False
         except Exception:
             return False
         

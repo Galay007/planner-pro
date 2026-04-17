@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy import (
-    Column, Integer, BigInteger, Boolean, CheckConstraint, ForeignKey, String, TIMESTAMP, Text, text, DateTime, Date, Time, Enum as SQLEnum
+    select, Column, Integer, BigInteger, Boolean, ForeignKey, String, DateTime, Enum as SQLEnum
 )
-from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
 from enum import Enum
+from sqlalchemy.orm import  Mapped, relationship
+from pydantic import computed_field
 
 class RunningStatusEnum(str, Enum):
     SUCCESS = "success"
@@ -16,6 +17,9 @@ class TriggerModeEnum(str, Enum):
     SCHEDULED = "scheduled"
     MANUAL = "manual"
     DEPENDED = "depended"
+
+if TYPE_CHECKING:
+    from .TaskModel import Task
 
 
 class TaskRunning(Base):
@@ -40,6 +44,35 @@ class TaskRunning(Base):
     next_retry_at = Column(DateTime(timezone=False), nullable=True)
     status = Column(SQLEnum(RunningStatusEnum, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), 
                     nullable=False, default=RunningStatusEnum.PENDING )
+    
+    task: Mapped["Task"] = relationship("Task",foreign_keys=[task_uid],lazy="select",passive_deletes=True)
+
+    @computed_field
+    @property
+    def task_name(self) -> Optional[str]:
+        return self.task.task_name if self.task else None
+    
+    @computed_field
+    @property
+    def duration(self) -> Optional[str]:
+        try:
+            if self.started_dt is not None and self.finished_dt is not None:
+                delta_time = self.finished_dt - self.started_dt
+                return str(delta_time).split('.')[0]
+        except Exception:
+            pass
+            return None
+        
+    @computed_field
+    @property
+    def started_str(self) -> Optional[str]:
+        return self.started_dt.strftime("%H:%M:%S") if self.started_dt is not None else None
+    
+    @computed_field
+    @property
+    def finished_str(self) -> Optional[str]:
+        return self.schedule_dt.strftime("%H:%M:%S") if self.finished_dt is not None else None
+
 
     
 

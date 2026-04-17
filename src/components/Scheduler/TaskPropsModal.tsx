@@ -141,13 +141,14 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
 
   return (
     <div className="props-overlay">
+      <div className={editState.active_tab === 'create' ? 'props-modal-resizer' : undefined}>
       <div className="props-modal" onClick={e => e.stopPropagation()}>
 
         <div className="props-modal__header">
           <span className="props-modal__title">
             Задача #{task.task_id} - {task.task_name}
           </span>
-          <button className="props-modal__close" onClick={onClose}>✕</button>
+          <button className="props-modal__close" onClick={onCancelEdit}>✕</button>
         </div>
 
         <div className="props-modal__body">
@@ -344,6 +345,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           )}
         </div>
 
+      </div>
       </div>
     </div>
   );

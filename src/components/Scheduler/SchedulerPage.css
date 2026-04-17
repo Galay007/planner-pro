@@ -1,3 +1,9 @@
+.scheduler {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .scheduler__header {
   display: flex;
   align-items: center;

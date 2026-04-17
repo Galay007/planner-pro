@@ -7,7 +7,8 @@ let eventSource: EventSource | null = null;
 export interface SSEHandlers {
   onError?: (error: Event) => void;
   onOpen?: () => void;
-  onRefresh?: () => void;
+  onTaskRefresh?: () => void;
+  onRunningRefresh?: () => void;
 }
 
 export function connectSSE(handlers: SSEHandlers): EventSource {
@@ -37,7 +38,12 @@ export function connectSSE(handlers: SSEHandlers): EventSource {
 
   eventSource.addEventListener('task_update', () => {
     Logger.info('[SSE] task_update event received');
-    handlers.onRefresh?.();
+    handlers.onTaskRefresh?.();
+  });
+
+  eventSource.addEventListener('running_update', () => {
+    Logger.info('[SSE] running_update event received');
+    handlers.onRunningRefresh?.();
   });
 
   return eventSource;

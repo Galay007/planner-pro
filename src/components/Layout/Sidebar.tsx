@@ -1,4 +1,4 @@
-import { Calendar, Database, FileSpreadsheet, Link2 } from "lucide-react";
+import { Calendar, DatabaseBackup, CalendarSync, Link2, Activity } from "lucide-react";
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -7,8 +7,9 @@ import './Sidebar.css';
 const navItems = [
   { to: '/', label: 'Планировщик', icon: Calendar },
   { to: '/connections', label: 'Подключения', icon: Link2 },
-  { to: '/migration-db', label: 'Миграция БД', icon: Database },
-  { to: '/migration-csv', label: 'Миграция CSV', icon: FileSpreadsheet },
+  { to: '/migration-db', label: 'Миграция БД', icon: DatabaseBackup },
+  { to: '/migration-csv', label: 'Миграция CSV', icon: CalendarSync },
+  { to: '/monitoring', label: 'Мониторинг', icon: Activity },
 ];
 
 export default function Sidebar() {

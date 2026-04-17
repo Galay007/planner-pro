@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from .routers.ConnectionRouter import ConnectionRouter
 from .routers.TaskRouter import TaskRouter
-from .routers.TaskHistRouter import TaskHistRouter
+from .routers.TaskRunningRouter import TaskRunningRouter
 from .routers.TaskPropertyRouter import TaskPropertyRouter
 from .models.TaskFileModel import TaskFile
 from .models.TaskRunningModel import TaskRunning
@@ -17,7 +17,7 @@ from .utils.SSEManager import SSEManager
 from .configs.Database import init_metadata_db
 from .exceptions import register_db_exception_handlers
 from .services.SseService import set_sse_manager
-from .schemas.SseSchemas import EmitRequest
+from .schemas.SseSchema import EmitRequest
 from contextlib import asynccontextmanager
 import asyncio
 
@@ -57,7 +57,7 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.include_router(ConnectionRouter)
 app.include_router(TaskRouter)
-app.include_router(TaskHistRouter)
+app.include_router(TaskRunningRouter)
 app.include_router(TaskPropertyRouter)
 
 app.add_middleware(

@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy import select, delete
+from sqlalchemy import select, select, func, or_, delete, and_
 from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload, selectinload
 from ..models.TaskRunningModel import TaskRunning
@@ -21,7 +21,20 @@ class TaskRunningRepository:
         # self.db.flush()
 
     def get_all(self) -> List[TaskRunning]:
-        return self.db.scalars(select(TaskRunning)).all()
+        return  self.db.scalars(
+            select(TaskRunning)
+            .where(
+                or_(
+                    and_(TaskRunning.status != 'pending', TaskRunning.schedule_dt < func.now()),
+                        TaskRunning.schedule_dt >= func.now()
+                     )
+                )
+            .order_by(
+                TaskRunning.schedule_dt.asc(), 
+                TaskRunning.task_id    
+            )
+            .options(selectinload(TaskRunning.task))
+        )
     
     def get_db(self) -> Session:
         return self.db

@@ -66,7 +66,7 @@ export default function SchedulerPage() {
     connectSSE({
       onOpen: () => setSseStatus('connected'),
       onError: () => setSseStatus('error'),
-      onRefresh: () => fetchTasks(true)
+      onTaskRefresh: () => fetchTasks(true)
     });
     return () => disconnectSSE();
   }, []);
