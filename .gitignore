@@ -30,6 +30,10 @@ venv/
 .env
 __pycache__/
 *.pyc
+/backend/.venv
+/backend/.env
 
 #front
 .vite
+/frontend/.vite
+

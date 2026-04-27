@@ -1,8 +1,9 @@
 import logging
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from .routers.ConnectionRouter import ConnectionRouter
@@ -20,10 +21,13 @@ from .services.SseService import set_sse_manager
 from .schemas.SseSchema import EmitRequest
 from contextlib import asynccontextmanager
 import asyncio
+import os
 
 
 is_shutting_down = False
 sse_manager: SSEManager | None = None
+
+DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "dist")
 
 logging.basicConfig(
     level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
@@ -55,10 +59,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
-app.include_router(ConnectionRouter)
-app.include_router(TaskRouter)
-app.include_router(TaskRunningRouter)
-app.include_router(TaskPropertyRouter)
+app.include_router(ConnectionRouter, prefix="/api")
+app.include_router(TaskRouter, prefix="/api")
+app.include_router(TaskRunningRouter, prefix="/api")
+app.include_router(TaskPropertyRouter, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -94,6 +98,16 @@ async def emit_event(request: EmitRequest ):
     await sse_manager.broadcast(request.message, request.event_type)
     return {"ok": True}
 
+
+if os.path.isdir(DIST_DIR):
+    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str):
+        file_path = os.path.join(DIST_DIR, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(DIST_DIR, "index.html"))
 
 
 if __name__ == "__main__":

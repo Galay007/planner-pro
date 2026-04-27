@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import type { TaskOut, TaskPropsOut, TaskType, ConnectionOut } from '../../types';
+import { useEffect, useRef, useState } from 'react';
+import type { TaskOut, TaskPropsOut, TaskType, ConnectionOut, ServerMessage } from '../../types';
 import { Pencil} from 'lucide-react';
-import { getConnections } from '../../services/api';
+import { getConnections, parseApiError } from '../../services/api';
 import './TaskPropsModal.css';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   onEdit: () => void;
   onCancelEdit: () => void;
   onSaveProp: (formData: FormData) => Promise<void>;
+  onServerMessage: (msg: ServerMessage) => void;
 }
 
 type PropEditState = {
@@ -22,13 +23,13 @@ type PropEditState = {
   cron_expression: string;
   email: string;
   tg_chat_id: string;
-  root_folder: string;
+  root_folder: string | null;
   files: File[];
   manual_script: string;
-  active_tab: 'attach' | 'create';
+  active_tab: 'attach' | 'create' | 'keep_files';
 };
 
-const TASK_TYPES: TaskType[] = ['sql', 'python', 'bat'];
+const TASK_TYPES: TaskType[] = ['sql', 'py', 'bat'];
 
 function toDateInput(dt: string | null): string {
   if (!dt) return '';
@@ -60,9 +61,10 @@ function Divider({ label }: { label: string }) {
   return <div className="props-modal__divider">{label}</div>;
 }
 
-export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit, onCancelEdit, onSaveProp }: Props) {
+export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit, onCancelEdit, onSaveProp, onServerMessage }: Props) {
   const hasDep = task.task_deps_id !== null;
   const [saving, setSaving] = useState(false);
+  const keyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
   const [connections, setConnections] = useState<ConnectionOut[]>([]);
   const [editState, setEditState] = useState<PropEditState>({
     task_type: props.task_type,
@@ -75,7 +77,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
     root_folder: props.storage_path ?? '',
     files: [],
     manual_script: '',
-    active_tab: 'attach',
+    active_tab: 'keep_files',
   });
 
   useEffect(() => {
@@ -89,10 +91,10 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
         cron_expression: props.cron_expression ?? '',
         email: props.email ?? '',
         tg_chat_id: props.tg_chat_id ?? '',
-        root_folder: props.storage_path ?? '',
+        root_folder: null,
         files: [],
         manual_script: '',
-        active_tab: 'attach',
+        active_tab: 'keep_files',
       });
     }
   }, [isEditing]);
@@ -113,31 +115,38 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
       if (editState.cron_expression) fd.append('cron_expression', editState.cron_expression);
       if (editState.email) fd.append('email', editState.email);
       if (editState.tg_chat_id) fd.append('tg_chat_id', editState.tg_chat_id);
-      fd.append('root_folder', editState.root_folder);
+      if (editState.root_folder) fd.append('root_folder', editState.root_folder.replace(/[/\\]+$/, ''));
       if (editState.files.length > 0) {
         editState.files.forEach(f => fd.append('files', f));
       }
-      if (editState.active_tab === 'attach') {
+      if (editState.active_tab === 'keep_files') {
+        // не добавляем is_manual — сервер получит None
+      } else if (editState.active_tab === 'attach') {
         fd.append('is_manual', 'false');
       } else if (editState.manual_script) {
         fd.append('is_manual', 'true');
         fd.append('manual_script', editState.manual_script);
-      } else {
-        fd.append('is_manual', 'false');
-      }
+      } 
       await onSaveProp(fd);
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка сохранения настроек', detail, ok: false });
     } finally {
       setSaving(false);
     }
   }
 
+  keyDownRef.current = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') isEditing ? onCancelEdit() : onClose();
+    if (e.key === 'Enter' && isEditing && !saving && (e.target as HTMLElement).tagName !== 'TEXTAREA')
+      void handleSave();
+  };
+
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
-    }
+    function onKeyDown(e: KeyboardEvent) { keyDownRef.current(e); }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="props-overlay">
@@ -148,7 +157,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           <span className="props-modal__title">
             Задача #{task.task_id} - {task.task_name}
           </span>
-          <button className="props-modal__close" onClick={onCancelEdit}>✕</button>
+          <button className="props-modal__close" onClick={isEditing ? onCancelEdit : onClose}>✕</button>
         </div>
 
         <div className="props-modal__body">
@@ -237,6 +246,11 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
               <>
                 <div className="props-modal__tabs">
                   <button
+                    className={`props-modal__tab${editState.active_tab === 'keep_files' ? ' props-modal__tab--active' : ''}`}
+                    onClick={() => set('active_tab', 'keep_files')}>
+                    Не менять
+                  </button>
+                  <button
                     className={`props-modal__tab${editState.active_tab === 'attach' ? ' props-modal__tab--active' : ''}`}
                     onClick={() => set('active_tab', 'attach')}>
                     Вложить
@@ -253,9 +267,9 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
                       <Divider label="Путь" />
                       <EditRow label="">
                         <input className="props-modal__input" type="text"
-                          placeholder="Путь к папке на сервере"
-                          value={editState.root_folder}
-                          onChange={e => set('root_folder', e.target.value)} />
+                          placeholder="Путь к папке со скриптами..."
+                          value={editState.root_folder ?? ''}
+                          onChange={e => set('root_folder', e.target.value === '' ? null : e.target.value)} />
                       </EditRow>
                     </div>
                     <div className="props-modal__section props-modal__section--grow props-modal__divider--mt">
@@ -272,13 +286,29 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
                                 <span className="props-modal__file-num">{i + 1}.</span>{f.name}
                               </span>
                             ))
-                          : (props.file_names ?? []).length > 0
-                            ? [...(props.file_names ?? [])].sort((a, b) => a.localeCompare(b)).map((f, i) => (
-                                <span key={i} className="props-modal__file props-modal__file--existing">
-                                  <span className="props-modal__file-num">{i + 1}.</span>{f}
-                                </span>
-                              ))
-                            : <span className="props-modal__value props-modal__value--muted">Нет файлов</span>
+                          : <span className="props-modal__value props-modal__value--muted">Нет новых файлов</span>
+                        }
+                      </div>
+                    </div>
+                  </>
+                ) : editState.active_tab === 'keep_files' ? (
+                  <>
+                    <div className="props-modal__section">
+                      <Divider label="Путь" />
+                      {props.storage_path && (
+                        <span className="props-modal__path">{props.storage_path}</span>
+                      )}
+                    </div>
+                    <div className="props-modal__section props-modal__section--grow props-modal__divider--mt">
+                      <Divider label="Файлы" />
+                      <div className="props-modal__files">
+                        {(props.file_names ?? []).length > 0
+                          ? [...(props.file_names ?? [])].sort((a, b) => a.localeCompare(b)).map((f, i) => (
+                              <span key={i} className="props-modal__file">
+                                <span className="props-modal__file-num">{i + 1}.</span>{f}
+                              </span>
+                            ))
+                          : <span className="props-modal__value props-modal__value--muted">Нет файлов</span>
                         }
                       </div>
                     </div>
@@ -326,7 +356,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
           {isEditing ? (
             <>
               <button className="props-modal__btn props-modal__btn--save" onClick={handleSave} disabled={saving}>
-                {saving ? 'Сохранение...' : 'Сохранить'}
+                Сохранить
               </button>
               <button className="props-modal__btn props-modal__btn--cancel" onClick={onCancelEdit}>
                 Отмена

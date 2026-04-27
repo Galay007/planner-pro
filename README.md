@@ -29,6 +29,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 python -m app.run_worker # запуск backend
 
+$env:PYTHONDONTWRITEBYTECODE=1;python -m app.main         
+
 ```
 
 ## Auto migration on startup

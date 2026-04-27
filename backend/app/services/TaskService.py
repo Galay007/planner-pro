@@ -6,6 +6,9 @@ from typing import List
 from .TaskHistService import TaskHistService
 from .SseService import send_to_client_update
 from datetime import datetime, timedelta
+import shutil
+from pathlib import Path
+from ..configs.Config import settings
 
 
 
@@ -77,7 +80,7 @@ class TaskService:
     def delete(self, task: Task) -> int:
         # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
-
+        self.task_server_folder_delete(task.task_id)
         dt_delete = DateTimeUtils.local_wo_microsec()
         self.taskHistService.update_deleted_date_from_task_service(task.task_uid, dt_delete)
 
@@ -113,5 +116,10 @@ class TaskService:
             close_fds=True # закрывает ВСЕ файловые дескрипторы родителя
             )
 
+    def task_server_folder_delete(self, task_id: int) -> None:
+        server_folder = Path(f'{settings.uploads_dir}/{task_id}')
+
+        if server_folder.exists():
+            shutil.rmtree(server_folder)
 
         

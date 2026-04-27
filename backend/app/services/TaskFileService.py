@@ -79,6 +79,10 @@ class TaskFileService:
 
         if needsToSave:
             self.save_files_on_server(root_path, valid_files)
+        else:
+            for file in valid_files:
+                 if not (Path(root_folder) / file.filename).exists():
+                     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"Can't find files in existing folder") 
 
         return valid_files
 
@@ -95,10 +99,10 @@ class TaskFileService:
             except Exception:
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=f"File {file.filename} was not saved") 
 
-    def delete_files(self, task_id: int, task_type: str):
+    def delete_files(self, task_id: int):
         self.taskFileRepository.delete_by_id(task_id)
         
-        server_folder = Path(f'{settings.uploads_dir}/{task_id}/{task_type.upper()}')
+        server_folder = Path(f'{settings.uploads_dir}/{task_id}')
 
         if server_folder.exists():
             shutil.rmtree(server_folder)

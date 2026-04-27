@@ -92,18 +92,18 @@ export async function getProp(taskId: number): Promise<{ data: TaskPropsOut } & 
   return { data: response.data, status: response.status };
 }
 
-export async function createProp(formData: FormData): Promise<ApiResult> {
-  const response = await api.post('/task_properties', formData, {
+export async function createProp(formData: FormData): Promise<{ data: TaskPropsOut } & ApiResult> {
+  const response = await api.post<TaskPropsOut>('/task_properties', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return { status: response.status, detail: extractDetail(response.data) };
+  return { data: response.data, status: response.status, detail: extractDetail(response.data) };
 }
 
-export async function saveProp(taskId: number, formData: FormData): Promise<ApiResult> {
-  const response = await api.put(`/task_properties/${taskId}`, formData, {
+export async function saveProp(taskId: number, formData: FormData): Promise<{ data: TaskPropsOut } & ApiResult> {
+  const response = await api.put<TaskPropsOut>(`/task_properties/${taskId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return { status: response.status, detail: extractDetail(response.data) };
+  return { data: response.data, status: response.status, detail: extractDetail(response.data) };
 }
 
 // Connections
@@ -132,8 +132,9 @@ export async function testConnection(body: Partial<ConnectionIn>): Promise<ApiRe
   return { status: response.status, detail: extractDetail(response.data) };
 }
 
+// TaskRunnings
 export async function getTaskRunnings(): Promise<{ data: TaskRunningOut[] } & ApiResult> {
-  const response = await api.get<TaskRunningOut[]>('/task_runnings/');
+  const response = await api.get<TaskRunningOut[]>('/task_runnings');
   return { data: response.data, status: response.status };
 }
 

@@ -1,6 +1,6 @@
 import {Logger} from '../utils/logger'
 
-const SSE_URL = 'http://192.168.1.67:8000/sse';
+const SSE_URL = import.meta.env.VITE_SSE_URL as string;
 
 let eventSource: EventSource | null = null;
 

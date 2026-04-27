@@ -75,19 +75,21 @@ class TaskPropertyService:
     def get_all(self) -> List[TaskProperty]:
         return self.taskPropertyRepository.get_all()
     
-    def update(self, taskProperty: TaskProperty, files: list[UploadFile], new_root_folder: str, new_task_type: str) -> TaskProperty:
+    def update(self, taskProperty: TaskProperty, files: list[UploadFile], new_root_folder: str, new_task_type: str, is_manual) -> TaskProperty:
+        if is_manual is not None:
+            if files:
+                self.taskFileService.delete_files(taskProperty.task_id)
+                root_path, needsToSave = self.taskFileService.check_folder_exists(taskProperty.task_id, new_task_type, new_root_folder)
+                valid_files = self.taskFileService.files_validation_and_save(needsToSave, new_task_type, root_path, files)
 
-        if files:
-            self.taskFileService.delete_files(taskProperty.task_id, taskProperty.task_type)
-            root_path, needsToSave = self.taskFileService.check_folder_exists(taskProperty.task_id, new_task_type, new_root_folder)
-            valid_files = self.taskFileService.files_validation_and_save(needsToSave, new_task_type, root_path, files)
+                for file in valid_files:
+                    file_path = f'{root_path}\{file.filename}'
+                    self.taskFileService.update(taskProperty.task_id, file.filename, file_path)
+                
+                taskProperty.storage_path = root_path
 
-            for file in valid_files:
-                file_path = f'{root_path}\{file.filename}'
-                self.taskFileService.update(taskProperty.task_id, file.filename, file_path)
-            
-            taskProperty.storage_path = root_path
-
+            taskProperty.original_path = str(new_root_folder)
+        
         taskProperty.task_type = new_task_type
         taskProperty.change_dt = DateTimeUtils.local_wo_microsec()
 

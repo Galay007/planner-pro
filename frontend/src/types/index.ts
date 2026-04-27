@@ -45,7 +45,7 @@ export interface ServerMessage {
 }
 
 // TaskProperties
-export type TaskType = 'sql' | 'python' | 'bat' ;
+export type TaskType = 'sql' | 'py' | 'bat' ;
 
 
 

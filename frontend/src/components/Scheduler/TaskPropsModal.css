@@ -17,7 +17,6 @@
   max-width: 95vw;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  animation: slide-in 0.15s ease;
 }
 
 .props-modal {
@@ -64,6 +63,7 @@
 
 .props-modal__close:hover {
   color: var(--color-text);
+  font-weight: 600;
 }
 
 .props-modal__body {
@@ -313,12 +313,11 @@
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  border-radius: 7px 7px 0px 0px;
+  border-radius: 5px 5px 0px 0px;
   border: 1px solid var(--color-border);
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .props-modal__tab:hover {
@@ -331,6 +330,8 @@
   background: var(--color-primary);
   color: var(--color-white);
   border-color: var(--color-primary);
+  border-radius: 5px 15px 0px 0px;
+  transition: 0.0s;
 }
 
 .props-modal__section--grow {

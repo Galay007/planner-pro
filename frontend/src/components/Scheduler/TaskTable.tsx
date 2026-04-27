@@ -277,13 +277,14 @@ export default function TaskTable({ tasks, selectedId, editingId,
           onCancelEdit={() => {
             if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
           }}
+          onServerMessage={onServerMessage}
           onSaveProp={async (formData) => {
-            const { status } = propsModal.isNew
+            const { status, data } = propsModal.isNew
               ? await createProp(formData)
               : await saveProp(propsModal.task.task_id, formData);
+            setPropsModal(prev => prev ? { ...prev, props: data, isNew: false } : null);
             onServerMessage({ status, text: `Настройки задачи #${propsModal.task.task_id} сохранены`, ok: true });
             if (!hasChangesRef.current()) void handleCancel(propsModal.task.task_id);
-            setPropsModal(null);
           }}
         />
       )}
@@ -338,6 +339,18 @@ function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef,
       hasChangesRef.current = () =>
         EDITABLE_FIELDS.some(f => task[f] !== editState[f]);
     }
+  }, [isEditing, editState]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Enter'
+        && (e.target as HTMLElement).tagName !== 'SELECT'
+        && !(e.target as HTMLElement).closest('.props-overlay'))
+        onSaveTask({ ...task, ...editState });
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [isEditing, editState]);
 
   const statusClass =

@@ -6,7 +6,12 @@ interface Props {
   loading: boolean;
 }
 
-const LABELS: Record<keyof ConnectionOut, string> = {
+type ConnectionFieldKey = keyof Omit<ConnectionOut, 'id'>;
+
+const SQLITE_ONLY = ['db_path'] as const;
+const NON_SQLITE = ['host', 'port', 'db_name', 'login'] as const;
+
+const LABELS: Record<ConnectionFieldKey, string> = {
   name: 'Имя:',
   conn_type: 'Тип:',
   host: 'Хост:',
@@ -15,9 +20,6 @@ const LABELS: Record<keyof ConnectionOut, string> = {
   login: 'Логин:',
   db_path: 'Путь к файлу:',
 };
-
-const SQLITE_ONLY: (keyof ConnectionOut)[] = ['db_path'];
-const NON_SQLITE: (keyof ConnectionOut)[] = ['host', 'port', 'db_name', 'login'];
 
 export default function ConnectionDetail({ connection, loading }: Props) {
   if (loading) {
@@ -36,11 +38,11 @@ export default function ConnectionDetail({ connection, loading }: Props) {
 
   const isSqlite = connection.conn_type === 'sqlite';
 
-  const fields: (keyof ConnectionOut)[] = [
-    'name',
-    'conn_type',
-    ...(isSqlite ? SQLITE_ONLY : NON_SQLITE),
-  ];
+const fields: ConnectionFieldKey[] = [
+  'name',
+  'conn_type',
+  ...(isSqlite ? SQLITE_ONLY : NON_SQLITE),
+];
 
   return (
     <div className="conn-detail">

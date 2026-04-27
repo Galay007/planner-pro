@@ -29,5 +29,17 @@ class TaskPropertyOut(BaseModel):
     email: Optional[str] = None
     tg_chat_id: Optional[str] = None
     conn_name: Optional[str] = None
+
+class TaskPropertyIn(BaseModel):
+    from_dt: Optional[datetime] = None
+    until_dt: Optional[datetime] = None
+    connection_id: Optional[int] = None
+    cron_expression: Optional[str] = None
+    task_type: str
+    email: Optional[str] = None
+    tg_chat_id: Optional[str] = None
+    root_folder: Optional[str] = None
+    is_manual: Optional[bool] = None # true - создан скрипт, false - новые файлы и путь, none - файлы и путь не меняются
+    manual_script: Optional[str] = None
  
 

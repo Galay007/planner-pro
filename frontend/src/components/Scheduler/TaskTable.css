@@ -69,7 +69,7 @@
   width: 50px;
   text-align: center;
   position: relative;
-  left: -2px;
+  left: 0px;
 }
 
 .table__td--controls {
