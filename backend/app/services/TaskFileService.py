@@ -35,8 +35,8 @@ class TaskFileService:
     def get_by_uid(self,task_uid: int) -> TaskFile | None:           
         return self.taskFileRepository.get_by_uid(task_uid)
     
-    def get_by_id(self,id: int) -> TaskFile | None:
-        return self.taskFileRepository.get_by_id(id)
+    def get_by_id(self, task_id: int) -> List[TaskFile]:
+        return self.taskFileRepository.get_by_id(task_id)
     
     def get_all(self) -> List[TaskFile]:
         return self.taskFileRepository.get_all()

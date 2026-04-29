@@ -10,6 +10,7 @@ from .routers.ConnectionRouter import ConnectionRouter
 from .routers.TaskRouter import TaskRouter
 from .routers.TaskRunningRouter import TaskRunningRouter
 from .routers.TaskPropertyRouter import TaskPropertyRouter
+from .routers.TaskLogRouter import TaskLogRouter
 from .models.TaskFileModel import TaskFile
 from .models.TaskRunningModel import TaskRunning
 from .models.TaskLogModel import TaskLog
@@ -63,6 +64,7 @@ app.include_router(ConnectionRouter, prefix="/api")
 app.include_router(TaskRouter, prefix="/api")
 app.include_router(TaskRunningRouter, prefix="/api")
 app.include_router(TaskPropertyRouter, prefix="/api")
+app.include_router(TaskLogRouter, prefix="/api")
 
 app.add_middleware(
     CORSMiddleware,

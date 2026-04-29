@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { TaskOut, ConnectionOut, ConnectionIn, TaskPropsOut, TaskRunningOut } from '../types';
+import type { TaskOut, ConnectionOut, ConnectionIn, TaskPropsOut, TaskRunningOut, TaskLogOut } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -135,6 +135,12 @@ export async function testConnection(body: Partial<ConnectionIn>): Promise<ApiRe
 // TaskRunnings
 export async function getTaskRunnings(): Promise<{ data: TaskRunningOut[] } & ApiResult> {
   const response = await api.get<TaskRunningOut[]>('/task_runnings');
+  return { data: response.data, status: response.status };
+}
+
+// TaskLog
+export async function getLog(taskId: number): Promise<{ data: TaskLogOut[] } & ApiResult> {
+  const response = await api.get<TaskLogOut[]>(`/logs/${taskId}`);
   return { data: response.data, status: response.status };
 }
 

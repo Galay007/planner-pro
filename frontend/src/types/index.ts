@@ -91,3 +91,11 @@ export interface TaskRunningOut {
   next_retry_at: string | null;
   status: string | null;
 }
+
+export interface TaskLogOut {
+  task_id: number;
+  file_name: string | null;
+  log_text: string | null;
+  pid_id: number | null;
+  created_dt: string | null;
+}

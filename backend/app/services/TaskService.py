@@ -4,6 +4,7 @@ from ..models.TaskModel import Task
 from ..utils.DatetimeUtils import DateTimeUtils
 from typing import List
 from .TaskHistService import TaskHistService
+from .TaskLogService import TaskLogService
 from .SseService import send_to_client_update
 from datetime import datetime, timedelta
 import shutil
@@ -15,12 +16,14 @@ from ..configs.Config import settings
 class TaskService:
     taskRepository: TaskRepositoryAPI
     taskHistService: TaskHistService
+    taskLogService: TaskLogService
 
     def __init__(
         self, taskRepository: TaskRepositoryAPI = Depends()
     ) -> None:
         self.taskRepository = taskRepository
         self.taskHistService = TaskHistService(self.taskRepository.get_db())
+        self.taskLogService = TaskLogService(self.taskRepository.get_db())
 
     def create_task(self,
         task_id: int,
@@ -78,7 +81,6 @@ class TaskService:
         return self.taskRepository.update(task)
 
     def delete(self, task: Task) -> int:
-        # To do удалять папку uploads для task_id и task_type, если она не пустая
         self.taskRepository.delete(task)
         self.task_server_folder_delete(task.task_id)
         dt_delete = DateTimeUtils.local_wo_microsec()
@@ -109,10 +111,9 @@ class TaskService:
             str(task.task_id),
             str(task.task_props.task_type),
             str(task.TTL_RUN_SECONDS),
-            task.db_url
-            ], 
+            task.db_url], 
             cwd=app_dir.parent,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW, # | subprocess.CREATE_NEW_CONSOLE,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW, #subprocess.CREATE_NEW_CONSOLE,  
             close_fds=True # закрывает ВСЕ файловые дескрипторы родителя
             )
 
@@ -121,5 +122,8 @@ class TaskService:
 
         if server_folder.exists():
             shutil.rmtree(server_folder)
+
+    def send_log(self, task_id, log_text, PID: int = None, file_name: str = None):
+        self.taskLogService.create(task_id, log_text, file_name)
 
         

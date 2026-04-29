@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import type { TaskOut, TaskPropsOut, ServerMessage } from '../../types';
+import type { TaskOut, TaskPropsOut, TaskLogOut, ServerMessage } from '../../types';
 import { startTask, stopTask, oneTimeRun, getTasks,
-  saveTask, parseApiError, startEdit, cancelEdit, sendHeartBeat, getProp, createProp, saveProp } from '../../services/api';
+  saveTask, parseApiError, startEdit, cancelEdit, sendHeartBeat, getProp, createProp, saveProp, getLog } from '../../services/api';
 import { Play, Pencil, Settings, Check, X } from 'lucide-react';
 import TaskPropsModal from './TaskPropsModal';
+import TaskLogModal from './TaskLogModal';
 import './TaskTable.css';
+import {Logger} from '../../utils/logger'
 
 interface Props {
   tasks: TaskOut[];
@@ -37,6 +39,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
   const [sortKey, setSortKey] = useState<SortKey>('task_id');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [propsModal, setPropsModal] = useState<{ task: TaskOut; props: TaskPropsOut; isNew: boolean } | null>(null);
+  const [logModal, setLogModal] = useState<{ taskId: number; logs: TaskLogOut[] } | null>(null);
   const hasChangesRef = useRef<() => boolean>(() => false);
 
   const emptyProps = (task: TaskOut): TaskPropsOut => ({
@@ -65,6 +68,17 @@ export default function TaskTable({ tasks, selectedId, editingId,
         const { detail } = parseApiError(e);
         onServerMessage({ status, text: 'Ошибка загрузки настроек', detail, ok: false });
       }
+    }
+  }
+
+  async function handleOpenLog(taskId: number) {
+    try {
+      const { data } = await getLog(taskId);
+      Logger.info('Received log task request', data)
+      setLogModal({ taskId, logs: data });
+    } catch (e) {
+      const { status, detail } = parseApiError(e);
+      onServerMessage({ status, text: 'Ошибка загрузки логов', detail, ok: false });
     }
   }
 
@@ -260,12 +274,21 @@ export default function TaskTable({ tasks, selectedId, editingId,
                 onCancel={handleCancel}
                 onSelect={onSelect}
                 onSettings={handleSettings}
+                onOpenLog={handleOpenLog}
               />
             ))
           )}
         </tbody>
       </table>
     </div>
+
+      {logModal && (
+        <TaskLogModal
+          taskId={logModal.taskId}
+          logs={logModal.logs}
+          onClose={() => setLogModal(null)}
+        />
+      )}
 
       {propsModal && (
         <TaskPropsModal
@@ -305,9 +328,10 @@ interface RowProps {
   onCancel: (taskId: number) => void;
   onSelect: (id: number | null) => void;
   onSettings: (task: TaskOut) => void;
+  onOpenLog: (taskId: number) => void;
 }
 
-function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef, onControl, onOneTimeRun, onEdit, onSaveTask, onCancel, onSelect, onSettings }: RowProps) {
+function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef, onControl, onOneTimeRun, onEdit, onSaveTask, onCancel, onSelect, onSettings, onOpenLog }: RowProps) {
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null);
   const isEditing = editingId === task.task_id;
   const isLocked = editingId !== null && !isEditing;
@@ -474,7 +498,7 @@ const statusLabel =
       </td>
 
       <td className="table__td table__td--center">
-        <button className="link-btn">Открыть</button>
+        <button className="link-btn" onClick={() => onOpenLog(task.task_id)}>Открыть</button>
       </td>
 
       <td className="table__td table__td--center">

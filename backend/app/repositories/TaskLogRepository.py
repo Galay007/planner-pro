@@ -25,13 +25,17 @@ class TaskLogRepository:
             .where(TaskLog.task_id==task_id)
         )
     
-    def get_log_by_task_uid(self, task_uid: int) -> TaskLog:           
-        return self.db.scalar(
-            select(TaskLog)
-            .where(TaskLog.task_uid==task_uid)
-        )
-    
     def update_log(self, taskLog: TaskLog) -> TaskLog:
         self.db.merge(taskLog)
         self.db.flush()
         return taskLog
+    
+    def get_by_task_id(self, task_id: int) -> List[TaskLog]:      
+        return self.db.scalars(
+            select(TaskLog)
+            .where(TaskLog.task_id == task_id)
+            .order_by(TaskLog.created_dt.desc())
+        ).all()
+    
+    def commit(self):
+         self.db.commit()

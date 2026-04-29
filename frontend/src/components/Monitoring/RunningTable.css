@@ -32,6 +32,12 @@
   transition: background 0.15s;
 }
 
+
+
+.running-table__th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
 .running-table__th:hover {
   background: var(--color-table-row-hover);
 }

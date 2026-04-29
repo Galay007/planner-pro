@@ -13,8 +13,12 @@ class TaskFileRepository:
     ) -> None:
         self.db = db
 
-    def get_by_id(self, id: int) -> TaskFile:      
-        return self.db.query(TaskFile).filter(TaskFile.id == id).first()
+    def get_by_id(self, task_id: int) -> List[TaskFile]:      
+         return self.db.scalars(
+            select(TaskFile)
+            .where(TaskFile.task_id == task_id)
+            .order_by(TaskFile.file_name.asc())
+        ).all()
     
     def get_by_uid(self, task_uid: int) -> TaskFile:      
         return self.db.query(TaskFile).filter(TaskFile.task_uid == task_uid).first()

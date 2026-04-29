@@ -27,7 +27,8 @@ def create_task(payload: TaskCreate, taskService: TaskService = Depends()):
         notifications=payload.notifications,
         comment=payload.comment
         )
-
+    
+    taskService.send_log(new_task.task_id, "Задача создана")
     return new_task
 
 @TaskRouter.get("/max_task_id")
@@ -45,7 +46,7 @@ def delete(task_id: int, taskService: TaskService = Depends()):
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE,detail=f"Can not be deleted while ON")
     taskService.delete(task)
 
-    #to do добавить логи childs что parent был удален
+    #to do добавить логи в childs что parent был удален
     return task.return_id_uid()
 
 @TaskRouter.get("/{task_id}")
@@ -81,6 +82,7 @@ def to_on_task(task_id: int, taskService: TaskService = Depends()):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to ON while it is already ON")
     
     taskService.update_with_informing(task)
+    taskService.send_log(task.task_id, "Задача активирована")
 
 @TaskRouter.put("/off/{task_id}")
 def to_off_task(task_id: int, taskService: TaskService = Depends()):
@@ -95,6 +97,7 @@ def to_off_task(task_id: int, taskService: TaskService = Depends()):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"You try to OFF while it is already OFF")
     
     taskService.update_with_informing(task)
+    taskService.send_log(task.task_id, "Задача деактивирована")
 
 @TaskRouter.put("/start_edit/{task_id}")
 def to_off_task(task_id: int, taskService: TaskService = Depends()):
@@ -153,6 +156,9 @@ def to_run_task(task_id: int, taskService: TaskService = Depends()):
     check_is_none(task, task_id)
     check_is_running(task)
     check_is_editing(task)
+    
+    if task.task_name == '-' or task.owner == '-':
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"No name or owner of task")
 
     if datetime.now() <= task.run_expire_at:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail=f"Task id '{task.task_id}' is one-time running, wait finish")
