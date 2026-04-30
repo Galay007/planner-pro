@@ -2,7 +2,7 @@ from fastapi import Depends
 from ..repositories.TaskHistRepository import TaskHistRepository
 from ..models.TaskHistModel import TaskHist
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from .TaskRunningService import TaskRunningService
 from .SseService import send_to_client_update
@@ -45,13 +45,13 @@ class TaskHistService:
         self.taskHistRepository.create(new_task_hist)
         self.db.commit()
 
-    def get_by_uid(self, task_uid: int) -> TaskHist | None:           
+    def get_by_uid(self, task_uid: int) -> Optional[TaskHist]:           
         return self.taskHistRepository.get_by_uid(task_uid)
     
-    def get_by_task_id(self, task_id: int) -> TaskHist | None:
+    def get_by_task_id(self, task_id: int) -> Optional[TaskHist]:
         return self.taskHistRepository.get_by_task_id(task_id)
     
-    def get_by_id(self, id: int) -> TaskHist | None:
+    def get_by_id(self, id: int) -> Optional[TaskHist]:
         return self.taskHistRepository.get_by_id(id)
     
     def get_all(self) -> List[TaskHist]:

@@ -2,7 +2,7 @@ from fastapi import Depends
 from ..repositories.TaskRepositoryAPI import TaskRepositoryAPI
 from ..models.TaskModel import Task
 from ..utils.DatetimeUtils import DateTimeUtils
-from typing import List
+from typing import List, Optional
 from .TaskHistService import TaskHistService
 from .TaskLogService import TaskLogService
 from .SseService import send_to_client_update
@@ -29,10 +29,10 @@ class TaskService:
         task_id: int,
         task_name: str,
         owner: str,
-        task_group: str | None,
-        task_deps_id: int | None,
+        task_group: Optional[str],
+        task_deps_id: Optional[int],
         notifications: bool,
-        comment: str | None,
+        comment: Optional[str],
 
         ) -> Task:
         
@@ -58,7 +58,7 @@ class TaskService:
         return new_task
 
 
-    def get_task_by_id(self, task_id: int) -> Task | None:
+    def get_task_by_id(self, task_id: int) -> Optional[Task]:
         return self.taskRepository.get(task_id)
     
     def generate_id(self, task_id: int) -> int:

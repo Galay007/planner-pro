@@ -2,7 +2,7 @@ from fastapi import Depends, UploadFile, File, HTTPException, status
 from ..repositories.TaskFileRepository import TaskFileRepository
 from ..models.TaskFileModel import TaskFile
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from ..utils.DatetimeUtils import DateTimeUtils
 import shutil
@@ -32,7 +32,7 @@ class TaskFileService:
 
         self.taskFileRepository.create(new_task_file)
 
-    def get_by_uid(self,task_uid: int) -> TaskFile | None:           
+    def get_by_uid(self,task_uid: int) -> Optional[TaskFile]:           
         return self.taskFileRepository.get_by_uid(task_uid)
     
     def get_by_id(self, task_id: int) -> List[TaskFile]:

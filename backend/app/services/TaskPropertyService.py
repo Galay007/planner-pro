@@ -1,7 +1,7 @@
 from fastapi import Depends, UploadFile, File
 from ..repositories.TaskPropertyRepositoryAPI import TaskPropertyRepositoryAPI
 from ..models.TaskPropertyModel import TaskProperty
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from ..utils.DatetimeUtils import DateTimeUtils
 from .TaskFileService import TaskFileService
@@ -22,15 +22,15 @@ class TaskPropertyService:
 
     def create(self,
         task_id: int,
-        from_dt: datetime | None,
-        until_dt: datetime | None,
+        from_dt: Optional[datetime],
+        until_dt: Optional[datetime],
         connection_id: int,
-        cron_expression: str | None,
+        cron_expression: Optional[str],
         task_type: str,
-        email: str | None,
-        tg_chat_id: str | None,
+        email: Optional[str],
+        tg_chat_id: Optional[str],
         root_folder: str,
-        files: list[UploadFile] = File(...)
+        files: List[UploadFile] = File(...)
         ) -> TaskProperty:
 
 
@@ -67,7 +67,7 @@ class TaskPropertyService:
         return new_property
 
 
-    def get_by_task_id(self,task_id: int) -> TaskProperty | None:
+    def get_by_task_id(self,task_id: int) -> Optional[TaskProperty]:
                  
         return self.taskPropertyRepository.get_by_task_id(task_id)
     
@@ -75,7 +75,7 @@ class TaskPropertyService:
     def get_all(self) -> List[TaskProperty]:
         return self.taskPropertyRepository.get_all()
     
-    def update(self, taskProperty: TaskProperty, files: list[UploadFile], new_root_folder: str, new_task_type: str, is_manual) -> TaskProperty:
+    def update(self, taskProperty: TaskProperty, files: List[UploadFile], new_root_folder: str, new_task_type: str, is_manual) -> TaskProperty:
         if is_manual is not None:
             if files:
                 self.taskFileService.delete_files(taskProperty.task_id)

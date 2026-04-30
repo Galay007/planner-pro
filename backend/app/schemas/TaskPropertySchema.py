@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from fastapi import Depends, UploadFile, File
 from datetime import datetime
@@ -14,7 +14,7 @@ class TaskPropertyCreate(BaseModel):
     email: Optional[str] = None
     tg_chat_id: Optional[str] = None
     root_folder: str
-    files: list[UploadFile] = File(...)
+    files: List[UploadFile] = File(...)
 
 
 class TaskPropertyOut(BaseModel):
@@ -25,7 +25,7 @@ class TaskPropertyOut(BaseModel):
     cron_expression: Optional[str] = None
     task_type: str
     storage_path: str
-    file_names: list[str]
+    file_names: List[str]
     email: Optional[str] = None
     tg_chat_id: Optional[str] = None
     conn_name: Optional[str] = None

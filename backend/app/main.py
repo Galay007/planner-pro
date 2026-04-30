@@ -23,10 +23,11 @@ from .schemas.SseSchema import EmitRequest
 from contextlib import asynccontextmanager
 import asyncio
 import os
+from typing import Optional
 
 
 is_shutting_down = False
-sse_manager: SSEManager | None = None
+sse_manager: Optional[SSEManager]
 
 DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "dist")
 

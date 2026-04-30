@@ -2,7 +2,7 @@ from fastapi import Depends
 from ..repositories.ConnectionRepositoryAPI import ConnectionRepositoryAPI
 from ..models.ConnectionModel import Connection
 from .TaskRunningService import TaskRunningService
-from typing import List
+from typing import List, Optional
 from .SseService import send_to_client_update
 import logging
 
@@ -22,12 +22,12 @@ class ConnectionService:
     def create(self,
         name: str,
         conn_type: str,
-        host: str | None,
-        port: int | None,
-        db_name: str | None,
-        login: str | None,
-        password: str | None,
-        db_path: str | None
+        host: Optional[str],
+        port: Optional[int],
+        db_name: Optional[str],
+        login: Optional[str],
+        password: Optional[str],
+        db_path: Optional[str]
         ) -> Connection:
         
         new_connection = Connection(
@@ -44,7 +44,7 @@ class ConnectionService:
         return self.connectionRepositoryAPI.create(new_connection)
 
 
-    def get_by_name(self,name: str) -> Connection | None:
+    def get_by_name(self,name: str) -> Optional[Connection]:
                  
         return self.connectionRepositoryAPI.get(name)
     
@@ -63,12 +63,12 @@ class ConnectionService:
     def test_new_connection(self,
         name: str,
         conn_type: str,
-        host: str | None,
-        port: int | None,
-        db_name: str | None,
-        login: str | None,
-        password: str | None,
-        db_path: str | None
+        host: Optional[str],
+        port: Optional[int],
+        db_name: Optional[str],
+        login: Optional[str],
+        password: Optional[str],
+        db_path: Optional[str]
         ) -> Connection:
         
         test_connection = Connection(

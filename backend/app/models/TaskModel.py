@@ -9,7 +9,7 @@ from cronsim import CronSim
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import computed_field
 
 logger = logging.getLogger(__name__)
@@ -115,7 +115,7 @@ class Task(Base):
             logger.error(f'Task id {task_id} has invalid path storage {path}')
             return False
 
-    def get_today_executions(self, cron_expr: str, today_dt: datetime) -> list[datetime]:
+    def get_today_executions(self, cron_expr: str, today_dt: datetime) -> List[datetime]:
         cs = CronSim(cron_expr, today_dt)
 
         today_executions = []

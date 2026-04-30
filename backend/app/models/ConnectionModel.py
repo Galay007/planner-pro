@@ -40,13 +40,13 @@ class Connection(Base):
 
 
     @property
-    def password(self) -> str | None:
+    def password(self) -> Optional[str]:
         if not self.pass_str:
             return None
         return fernet.decrypt(self.pass_str.encode("utf-8")).decode("utf-8")
 
     @password.setter
-    def password(self, value: str | None) -> None:
+    def password(self, value: Optional[str]) -> None:
         if value is None or value == "":
             self.pass_str = None
         else:

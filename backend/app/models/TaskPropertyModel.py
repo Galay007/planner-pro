@@ -26,7 +26,7 @@ class TaskProperty(Base):
     tg_chat_id = Column(String, nullable=True)
     change_dt = Column(DateTime(timezone=False), nullable=False)
 
-    files: Mapped[list["TaskFile"]] = relationship(back_populates="task_props", cascade="all, delete-orphan", lazy="select")
+    files: Mapped[List["TaskFile"]] = relationship(back_populates="task_props", cascade="all, delete-orphan", lazy="select")
     conn: Mapped["Connection"] = relationship(foreign_keys=[connection_id], lazy="select")
     task: Mapped["Task"] = relationship(back_populates="task_props", lazy="select")
 
