@@ -5,11 +5,11 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, relationship
 from ..configs.Database import Base
 from enum import Enum 
-from cronsim import CronSim
+from croniter import croniter
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from pydantic import computed_field
 
 logger = logging.getLogger(__name__)
@@ -77,8 +77,8 @@ class Task(Base):
     def next_run_at(self) -> Optional[str]:
         try:
             if self.on_control == 'on' and self.task_deps_id is None:
-                cs = CronSim(self.task_props.cron_expression, max(datetime.now(), self.task_props.from_dt))
-                dt = next(cs)
+                cs = croniter(self.task_props.cron_expression, max(datetime.now(), self.task_props.from_dt), day_or=False)
+                dt = cs.get_next(datetime)
                 return dt.strftime("%d.%m.%Y %H:%M:%S")
             return None
         except Exception:
@@ -98,7 +98,7 @@ class Task(Base):
 
     def is_cron_valid(self, expr: str, task_id: int) -> bool:
         try:
-            CronSim(expr, datetime.now())
+            croniter(expr, datetime.now(), day_or=False)
             return True
         except Exception as e:
             logger.error(f'Task id {task_id} has invalid cron expression {expr}')
@@ -116,18 +116,18 @@ class Task(Base):
             return False
 
     def get_today_executions(self, cron_expr: str, today_dt: datetime) -> List[datetime]:
-        cs = CronSim(cron_expr, today_dt)
+        cs = croniter(cron_expr, today_dt, day_or=False)
 
         today_executions = []
         for _ in range(1440):  # 1440 минут — 24 часа
-            dt = next(cs)
+            dt = cs.get_next(datetime)
 
             if dt.date() == today_dt.date():
                 today_executions.append(dt)
 
         return today_executions
   
-    def check_valid_before_on_control(self) -> tuple[Boolean,str]:
+    def check_valid_before_on_control(self) -> Tuple[Boolean,str]:
         if self.task_deps_id is None:
 
             if not self.is_added() and all(self.schedule_future_execute_params.values()):
@@ -153,7 +153,7 @@ class Task(Base):
                 return False, message
         return True, '' 
     
-    def check_valid_for_manual_execute(self) -> tuple[Boolean,str]:
+    def check_valid_for_manual_execute(self) -> Tuple[Boolean,str]:
         if not all(self.manual_execute_params.values()):
             first_key_false = next((key for key, value in self.manual_execute_params.items() if not value), None)
             message = f'One-time execute for task_id {self.task_id} can not be run due to not {first_key_false}'

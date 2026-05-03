@@ -1,1 +1,1 @@
-select 2
+Select pg_sleep(3)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..configs.Database import get_orm_connection
 from ..schemas.TaskRunningSchema import TaskRunningOut
 from typing import Optional,List
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,15 @@ def get_by_id(id: int,  taskRunningService: TaskRunningService = Depends(get_tas
     return task_running
 
 @TaskRunningRouter.get("", response_model=List[TaskRunningOut])
-def get_all(taskRunningService: TaskRunningService = Depends(get_task_hist_service_repo)):
+def get_all(
+    schedule_from: Optional[date] = None,
+    schedule_to: Optional[date] = None,
+    taskRunningService: TaskRunningService = Depends(get_task_hist_service_repo)
+    ):
     taskRunningService.refresh_runnings()
-    return taskRunningService.get_all()
+    run_list = taskRunningService.get_all(schedule_from, schedule_to)
+    return run_list
+
 
 def check_is_none(object, param):
     if object is None:

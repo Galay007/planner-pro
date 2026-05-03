@@ -1,14 +1,14 @@
 from ..repositories.TaskRunningRepository import TaskRunningRepository
 from ..models.TaskRunningModel import TaskRunning, RunningStatusEnum, TriggerModeEnum
 from ..models.TaskModel import Task, InRunningEnum, TaskStatusEnum
-from datetime import datetime
+from datetime import datetime, date
 from ..utils.DatetimeUtils import DateTimeUtils
 from ..repositories.TaskRepository import TaskRepository
-from cronsim import CronSim
 import logging
 from pathlib import Path
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from croniter import croniter
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class TaskRunningService:
         task.change_dt = DateTimeUtils.local_with_micr()
         self.taskRepository.update_task(task)
 
-    def validate_cheduled_tasks_for_adding(self, current_dt: datetime) -> list[Task]:
+    def validate_cheduled_tasks_for_adding(self, current_dt: datetime) -> List[Task]:
         tasks = self.taskRepository.get_all_tasks()
         validated_tasks_for_adding = []
 
@@ -140,7 +140,7 @@ class TaskRunningService:
     
     def is_cron_valid(self, expr: str, task_id: int) -> bool:
         try:
-            CronSim(expr, datetime.now())
+            croniter(expr, datetime.now(), day_or=False)
             return True
         except Exception as e:
             logger.error(f'Task id {task_id} has invalid cron expression {expr}')
@@ -158,20 +158,20 @@ class TaskRunningService:
             logger.error(f'Task id {task_id} has invalid path storage {path}')
             return False
 
-    def get_today_executions(self, cron_expr: str, today_dt: datetime) -> list[datetime]:
-        cs = CronSim(cron_expr, today_dt)
+    def get_today_executions(self, cron_expr: str, today_dt: datetime) -> List[datetime]:
+        cs = croniter(cron_expr, today_dt, day_or=False)
 
         today_executions = []
         for _ in range(1440):  # 1440 минут — 24 часа
-            dt = next(cs)
+            dt = cs.get_next(datetime)
 
             if dt.date() == today_dt.date():
                 today_executions.append(dt)
 
         return today_executions
 
-    def get_all(self)-> List[TaskRunning]:
-        return self.taskRunningRepository.get_all()
+    def get_all(self, schedule_from: Optional[date] = None,  schedule_to: Optional[date] = None, )-> List[TaskRunning]:
+        return self.taskRunningRepository.get_all(schedule_from, schedule_to)
     
 
 

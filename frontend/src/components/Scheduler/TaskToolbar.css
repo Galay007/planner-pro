@@ -39,8 +39,8 @@
 }
 
 .toolbar__btn--primary:hover {
-  background: var(--color-primary-light);
-  
+  background: var(--color-primary-light);  
+  color: var(--color-primary);
 }
 
 .toolbar__btn--red {

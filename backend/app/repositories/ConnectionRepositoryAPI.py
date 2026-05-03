@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, lazyload
 
 from ..configs.Database import get_orm_connection
 from ..models.ConnectionModel import Connection
+from ..models.TaskPropertyModel import TaskProperty
 
 
 class ConnectionRepositoryAPI:
@@ -24,6 +25,13 @@ class ConnectionRepositoryAPI:
         return connection
 
     def delete(self, connection: Connection) -> None:
+        self.db.query(TaskProperty).filter(
+            TaskProperty.connection_id == connection.id
+        ).update(
+            {"connection_id": None},
+            synchronize_session='fetch'
+        )
+
         self.db.delete(connection)
         self.db.flush()
 

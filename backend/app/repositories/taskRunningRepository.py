@@ -3,7 +3,7 @@ from sqlalchemy import select, select, func, or_, delete, and_
 from fastapi import Depends
 from sqlalchemy.orm import Session, lazyload, selectinload
 from ..models.TaskRunningModel import TaskRunning
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 class TaskRunningRepository:
     db: Session
@@ -20,8 +20,8 @@ class TaskRunningRepository:
         self.db.add(taskRunning)
         # self.db.flush()
 
-    def get_all(self) -> List[TaskRunning]:
-        return  self.db.scalars(
+    def get_all(self, schedule_from: Optional[date] = None, schedule_to: Optional[date] = None) -> List[TaskRunning]:
+        q = (
             select(TaskRunning)
             .where(
                 or_(
@@ -29,12 +29,14 @@ class TaskRunningRepository:
                         TaskRunning.schedule_dt >= func.now()
                      )
                 )
-            .order_by(
-                TaskRunning.schedule_dt.asc(), 
-                TaskRunning.task_id    
-            )
+            .order_by(TaskRunning.schedule_dt.asc(), TaskRunning.task_id)
             .options(selectinload(TaskRunning.task))
         )
+        if schedule_from is not None:
+            q = q.where(TaskRunning.schedule_dt >= schedule_from)
+        if schedule_to is not None:
+            q = q.where(TaskRunning.schedule_dt < schedule_to + timedelta(days=1))
+        return self.db.scalars(q)
     
     def get_db(self) -> Session:
         return self.db

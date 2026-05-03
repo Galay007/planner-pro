@@ -142,7 +142,7 @@ def to_off_task(task_id: int, body: TaskResponse, taskService: TaskService = Dep
     task.notifications = body.notifications
     task.comment = body.comment
 
-    if task.task_deps_id and task.task_props.cron_expression:
+    if task.task_deps_id and task.task_props is not None and task.task_props.cron_expression is not None:
         task.task_props.cron_expression = None
 
     task.edit_expire_at = datetime.now() - timedelta(seconds=1)

@@ -6,5 +6,7 @@ pydantic-settings==2.10.1
 cryptography==46.0.5
 python_dotenv==1.2.2
 python-multipart==0.0.22
-cronsim==2.7
-requests=2.33.1
+requests==2.33.1
+cron_descriptor==2.0.8
+croniter==6.2.2
+httpx==0.28.1

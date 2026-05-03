@@ -44,6 +44,13 @@ class TaskRepositoryAPI:
         return task
 
     def delete(self, task: Task) -> None:
+        self.db.query(Task).filter(
+            Task.task_deps_id == task.task_id
+        ).update(
+            {"task_deps_id": None},
+            synchronize_session='fetch'
+        )
+
         self.db.delete(task)
         self.db.flush()
 

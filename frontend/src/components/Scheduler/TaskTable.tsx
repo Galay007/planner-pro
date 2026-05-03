@@ -50,6 +50,7 @@ export default function TaskTable({ tasks, selectedId, editingId,
     from_dt: null,
     until_dt: null,
     cron_expression: null,
+    cron_desc: null,
     storage_path: '',
     file_names: null,
     email: null,
@@ -337,9 +338,9 @@ function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef,
   const isLocked = editingId !== null && !isEditing;
 
   const [editState, setEditState] = useState<EditState>({
-    task_name: task.task_name,
+    task_name: task.task_name === '-' ? '' : task.task_name,
     task_group: task.task_group,
-    owner: task.owner,
+    owner: task.owner === '-' ? '' : task.owner,
     task_deps_id: task.task_deps_id,
     notifications: task.notifications,
     comment: task.comment,
@@ -348,9 +349,9 @@ function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef,
   useEffect(() => {
     if (isEditing) {
       setEditState({
-        task_name: task.task_name,
+        task_name: task.task_name === '-' ? '' : task.task_name,
         task_group: task.task_group,
-        owner: task.owner,
+        owner: task.owner === '-' ? '' : task.owner,
         task_deps_id: task.task_deps_id,
         notifications: task.notifications,
         comment: task.comment,
@@ -369,7 +370,6 @@ function TaskRow({ task, isSelected, editingId, availableDepsIds, hasChangesRef,
     if (!isEditing) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Enter'
-        && (e.target as HTMLElement).tagName !== 'SELECT'
         && !(e.target as HTMLElement).closest('.props-overlay'))
         onSaveTask({ ...task, ...editState });
     }
@@ -422,7 +422,7 @@ const statusLabel =
             setOptimisticOn(!isOn);
             setTimeout(() => {
               setOptimisticOn(null);
-            }, 500);
+            }, 2000);
             onControl(task);
           }}
         >
@@ -440,7 +440,7 @@ const statusLabel =
           ? <input className="edit-input edit-input--name" 
                 value={editState.task_name} 
                 onChange={e => setEditState(s => ({ ...s, task_name: e.target.value }))} />
-          : task.task_name}
+          : (task.task_name === '-' ? '' : task.task_name)}
       </td>
       <td className="table__td table__td--center">
         {isEditing
@@ -451,7 +451,7 @@ const statusLabel =
         {isEditing
           ? <input className="edit-input edit-input--owner" 
           value={editState.owner} onChange={e => setEditState(s => ({ ...s, owner: e.target.value }))} />
-          : task.owner}
+          : (task.owner === '-' ? '' : task.owner)}
       </td>
 
       <td className="table__td table__td--center">
@@ -488,7 +488,7 @@ const statusLabel =
 
       <td className="table__td table__td--center">
         <input
-          className="custom-checkbox"
+          className={`custom-checkbox${isEditing ? ' custom-checkbox--editing' : ''}`}
           type="checkbox"
           checked={isEditing ? editState.notifications : task.notifications}
           readOnly={!isEditing}

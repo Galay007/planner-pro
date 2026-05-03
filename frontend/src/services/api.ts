@@ -133,8 +133,11 @@ export async function testConnection(body: Partial<ConnectionIn>): Promise<ApiRe
 }
 
 // TaskRunnings
-export async function getTaskRunnings(): Promise<{ data: TaskRunningOut[] } & ApiResult> {
-  const response = await api.get<TaskRunningOut[]>('/task_runnings');
+export async function getTaskRunnings(scheduleFrom?: string, scheduleTo?: string): Promise<{ data: TaskRunningOut[] } & ApiResult> {
+  const params: Record<string, string> = {};
+  if (scheduleFrom) params.schedule_from = scheduleFrom;
+  if (scheduleTo) params.schedule_to = scheduleTo;
+  const response = await api.get<TaskRunningOut[]>('/task_runnings', { params });
   return { data: response.data, status: response.status };
 }
 

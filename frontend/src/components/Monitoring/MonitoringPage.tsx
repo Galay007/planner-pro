@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 import { connectSSE, disconnectSSE } from '../../services/sse';
 import { getTaskRunnings, parseApiError } from '../../services/api';
 import type { TaskRunningOut, ServerMessage } from '../../types';
@@ -9,12 +9,14 @@ import './MonitoringPage.css';
 type StatusFilter = 'success' | 'error' | 'skipped' | 'pending';
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function monthStartStr() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  d.setDate(d.getDate() - 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export default function MonitoringPage() {
@@ -40,9 +42,9 @@ export default function MonitoringPage() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
-    getTaskRunnings()
+    getTaskRunnings(dateFrom, dateTo)
       .then(({ data, status }) => {
-        setRows(Array.isArray(data) ? data : []);
+        startTransition(() => setRows(Array.isArray(data) ? data : []));
         pushMessage({ status, text: 'Все OK', ok: true });
       })
       .catch((e) => {
@@ -56,17 +58,20 @@ export default function MonitoringPage() {
       });
   }
 
+  const fetchRunningsRef = useRef(fetchRunnings);
+  fetchRunningsRef.current = fetchRunnings;
+
   useEffect(() => {
     document.body.classList.toggle('is-loading', loading || refreshing);
   }, [loading, refreshing]);
 
-  useEffect(() => { fetchRunnings(); }, []);
+  useEffect(() => { fetchRunnings(); }, [dateFrom, dateTo]);
 
   useEffect(() => {
     connectSSE({
       onOpen: () => setSseStatus('connected'),
       onError: () => setSseStatus('error'),
-      onRunningRefresh: () => fetchRunnings(true),
+      onRunningRefresh: () => fetchRunningsRef.current(true),
     });
     return () => disconnectSSE();
   }, []);
@@ -82,8 +87,6 @@ export default function MonitoringPage() {
 
   const filtered = rows.filter(r => {
     if (statusFilter.size > 0 && !statusFilter.has((r.status ?? '') as StatusFilter)) return false;
-    if (dateFrom && r.schedule_dt.slice(0, 10) < dateFrom) return false;
-    if (dateTo && r.schedule_dt.slice(0, 10) > dateTo) return false;
     if (search) {
       const q = search.toLowerCase();
       return (

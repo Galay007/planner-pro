@@ -64,7 +64,7 @@ class TaskFileService:
         # return str(Path(root_folder).as_posix()), needsToSave
         return str(root_folder), needsToSave
 
-    def files_validation_and_save(self, needsToSave, task_type: str, root_folder: str, files: list[UploadFile] = File(...)):
+    def files_validation_and_save(self, needsToSave, task_type: str, root_folder: str, files: List[UploadFile] = File(...)):
 
         valid_files = [
             file

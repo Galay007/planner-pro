@@ -54,6 +54,11 @@ def create_connection_handler(
     if form.connection_id is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,detail=f"Choose connection name")
     
+    if files is None:
+        files = []
+
+    do_validation(form, task_id, files)
+
     new_task_property = taskPropertyService.create(
         task_id=task_id,
         from_dt=form.from_dt,
@@ -67,10 +72,6 @@ def create_connection_handler(
         files=files,
     )
 
-    if files is None:
-        files = []
-
-    do_validation(form, task_id, files)
 
     return new_task_property
 
@@ -84,6 +85,7 @@ def get_tasks(taskPropertyService: TaskPropertyService = Depends()):
 def get_task_by_id(task_id: int, taskPropertyService: TaskPropertyService = Depends()):
     task_property = taskPropertyService.get_by_task_id(task_id)
     check_is_none(task_property, task_id)
+    task_property.cron_desc
     
     return task_property
 

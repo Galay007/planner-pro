@@ -5,6 +5,9 @@ from ..configs.Database import Base
 from sqlalchemy.orm import Mapped, relationship
 from typing import TYPE_CHECKING, Optional, List
 from pydantic import computed_field
+from cron_descriptor import get_description, Options, CasingTypeEnum, DescriptionTypeEnum, ExpressionDescriptor
+from datetime import datetime
+from croniter import croniter
 
 if TYPE_CHECKING:
     from .TaskModel import Task
@@ -39,4 +42,31 @@ class TaskProperty(Base):
     @property
     def file_names(self) -> List[str]:
         return [f.file_name for f in self.files]
+    
+    @computed_field
+    @property
+    def cron_desc(self) -> Optional[str]:        
+        if self.cron_expression is not None:
+            try:
+                options = Options()
+                options.casing_type = CasingTypeEnum.Sentence
+                options.use_24hour_time_format = True
+                options.day_of_week_start_index_zero  = True
+                options.locale_code="ru_RU"
+
+                descriptor = ExpressionDescriptor(self.cron_expression, options)
+                cron_desc = descriptor.get_description(DescriptionTypeEnum.FULL)
+
+                now = datetime.now()
+                sim = croniter(self.cron_expression, now, day_or=False)
+                next_runs = [sim.get_next(datetime) for _ in range(5)]
+
+                full_desc = f"Описание: {cron_desc}\n След. 5 запусков: {[r.strftime('%Y-%m-%d %H:%M (%a)') for r in next_runs]}"
+                return full_desc
+            except Exception:
+                return 'Cron выражение не распознано'
+        else: return None
+            
+    
+
 

@@ -23,7 +23,7 @@ from .schemas.SseSchema import EmitRequest
 from contextlib import asynccontextmanager
 import asyncio
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 
 is_shutting_down = False
@@ -32,7 +32,7 @@ sse_manager: Optional[SSEManager]
 DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "dist")
 
 logging.basicConfig(
-    level=logging.INFO,  # Минимальный уровень (INFO, DEBUG, WARNING, ERROR)
+    level=logging.INFO,  # Минимальный уровень (DEBUG, INFO, WARNING, ERROR)
     format="%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(message)s",
     datefmt="%H:%M:%S"
 )
@@ -76,7 +76,7 @@ app.add_middleware(
 )
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> Dict[str, str]:
     if is_shutting_down:
         return {"status": "shutting_down"} 
     return {"status": "ok"}
@@ -118,8 +118,9 @@ if __name__ == "__main__":
         "app.main:app", 
         host = settings.host,
         port =settings.port,
-        reload=True,   
-        log_level="info"
+        reload=False,   
+        log_level="info",
+        timeout_graceful_shutdown=1
     )
 
 

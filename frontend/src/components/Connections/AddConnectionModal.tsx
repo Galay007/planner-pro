@@ -57,6 +57,7 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
   function isFieldInvalid(field: keyof FormState) {
+    if (field === 'port') return touched.port && (form.port === '' || form.port === null || Number(form.port) < 1024);
     return touched[field] && !form[field];
   }
 
@@ -67,7 +68,8 @@ export default function AddConnectionModal({ onClose, onSaved, pushMessage }: Pr
     const next: Partial<Record<keyof FormState, boolean>> = {};
     fields.forEach((f) => (next[f] = true));
     setTouched(next);
-    return fields.every((f) => !!form[f]);
+    const portValid = isSqlite || (!!form.port && Number(form.port) >= 1000);
+    return fields.filter(f => f !== 'port').every((f) => !!form[f]) && portValid;
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {

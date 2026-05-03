@@ -76,11 +76,16 @@
 
 .props-modal__left {
   flex: 1;
+  max-width: 20vw;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 50px;
+  gap: 30px;
   overflow-y: auto;
+}
+
+.props-modal__left--editing {
+  max-width: 20vw;
 }
 
 .props-modal__right {
@@ -91,6 +96,10 @@
   flex-direction: column;
   gap: 15px;
   min-height: 0;
+}
+
+.props-modal__right--editing {
+  min-width: 19vw;
 }
 
 .props-modal__path {
@@ -180,11 +189,77 @@
   font-size: 13px;
   color: var(--color-text);
   word-break: break-all;
+  padding-left: 30px;
 }
 
 .props-modal__value--muted {
   color: var(--color-text-muted);
   opacity: 0.5;
+  padding-left: 0px;
+}
+
+.props-modal__value--muted_spec {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  padding-left: 30px;
+}
+
+.props-modal__value--cron_desc {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  margin-left: -30px;
+}
+
+.props-modal__cron-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.props-modal__cron-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-primary);
+  cursor: default;
+  opacity: 0.7;
+}
+
+.props-modal__cron-info:hover {
+  opacity: 1;
+}
+
+.props-modal__cron-tooltip {
+  z-index: 9999;
+  background: var(--color-toolbar-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--color-text);
+  white-space: pre;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  pointer-events: none;
+  width: max-content;
+  margin: 0;
+}
+
+.props-modal__cron-prefix {
+  display: block;
+  word-break: normal;
+  overflow-wrap: normal;    
+  margin-top: 0px;
+  margin-bottom: 4px;
+}
+
+.props-modal__cron-list {
+  margin: 0;
+  margin-top: -20.5px;
+  padding-left: 135px;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .props-modal__section {
@@ -248,7 +323,7 @@
 }
 
 .props-modal__btn {
-  padding: 7px 16px;
+  padding: 4.8px 16px;
   border-radius: 5px;
   font-size: 13px;
   font-weight: 500;

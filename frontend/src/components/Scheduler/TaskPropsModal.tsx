@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { TaskOut, TaskPropsOut, TaskType, ConnectionOut, ServerMessage } from '../../types';
 import { Pencil} from 'lucide-react';
 import { getConnections, parseApiError } from '../../services/api';
@@ -37,18 +38,69 @@ function toDateInput(dt: string | null): string {
   return dt.slice(0, 16);
 }
 
-function Row({ label, value }: { label: string; value: string | null | undefined }) {
+const CRON_HELP = `Формат:
+MIN (minutes) - 0–59       |    * - любое значение поля
+HOUR (hours) - 0–23        |    a-b - диапазон (например, 1-5)
+DOM (day of month) - 1–31  |    a,b,c - список значений
+MON (month) - 1–12         |    */n - шаг (каждые n единиц)
+DOW (day of week) - 1-7    |    a-b/n - диапазон с шагом
+
+Частые примеры:
+* * * * *   # каждую минуту
+*/5 * * * * # каждые 5 минут
+0 * * * *   # каждый час
+0 2 * * *   # каждый день в 02:00
+30 3 * * *  # каждый день в 03:30
+0 9 * * 1-5 # будни в 09:00
+0 0 1 * *   # 1-е число каждого месяца в 00:00
+0 23 * * 0  # каждое воскресенье в 23:00`;
+
+function CronLabel() {
+  const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const infoRef = useRef<HTMLSpanElement>(null);
+
+  function handleMouseEnter() {
+    if (infoRef.current) {
+      const rect = infoRef.current.getBoundingClientRect();
+      setPos({ top: rect.top - 4, left: rect.right + 6 });
+    }
+    setVisible(true);
+  }
+
+  return (
+    <span className="props-modal__cron-label">
+      Cron
+      <span
+        ref={infoRef}
+        className="props-modal__cron-info"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setVisible(false)}
+      >
+        ⓘ
+        {visible && createPortal(
+          <pre className="props-modal__cron-tooltip" style={{ position: 'fixed', top: pos.top, left: pos.left }}>
+            {CRON_HELP}
+          </pre>,
+          document.body
+        )}
+      </span>
+    </span>
+  );
+}
+
+function Row({ label, value }: { label: React.ReactNode; value: string | null | undefined }) {
   return (
     <div className="props-modal__row">
       <span className="props-modal__label">{label}</span>
       {value
         ? <span className="props-modal__value">{value}</span>
-        : <span className="props-modal__value props-modal__value--muted">—</span>}
+        : <span className="props-modal__value props-modal__value--muted_spec">—</span>}
     </div>
   );
 }
 
-function EditRow({ label, children }: { label: string; children: React.ReactNode }) {
+function EditRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="props-modal__row">
       <span className="props-modal__label">{label}</span>
@@ -65,6 +117,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
   const hasDep = task.task_deps_id !== null;
   const [saving, setSaving] = useState(false);
   const keyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  const resizerRef = useRef<HTMLDivElement>(null);
   const [connections, setConnections] = useState<ConnectionOut[]>([]);
   const [editState, setEditState] = useState<PropEditState>({
     task_type: props.task_type,
@@ -96,6 +149,8 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
         manual_script: '',
         active_tab: 'keep_files',
       });
+    } else {
+      if (resizerRef.current) resizerRef.current.style.width = '';
     }
   }, [isEditing]);
 
@@ -150,7 +205,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
 
   return (
     <div className="props-overlay">
-      <div className={editState.active_tab === 'create' ? 'props-modal-resizer' : undefined}>
+      <div ref={resizerRef} className={isEditing && editState.active_tab === 'create' ? 'props-modal-resizer' : undefined}>
       <div className="props-modal" onClick={e => e.stopPropagation()}>
 
         <div className="props-modal__header">
@@ -162,7 +217,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
 
         <div className="props-modal__body">
 
-          <div className="props-modal__left">
+          <div className={`props-modal__left${isEditing ? ' props-modal__left--editing' : ''}`}>
 
             <div className="props-modal__section">
               <Divider label="Обработчик" />
@@ -203,7 +258,7 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
                       <input className="props-modal__input" type="datetime-local" value={editState.until_dt}
                         onChange={e => set('until_dt', e.target.value)} />
                     </EditRow>
-                    <EditRow label="Cron">
+                    <EditRow label={<CronLabel />}>
                       <input className="props-modal__input" type="text" value={editState.cron_expression}
                         onChange={e => set('cron_expression', e.target.value)} />
                     </EditRow>
@@ -212,7 +267,21 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
                   <>
                     <Row label="С даты" value={props.from_dt?.replace('T', ' ')} />
                     <Row label="По дату" value={props.until_dt?.replace('T', ' ')} />
-                    <Row label="Cron" value={props.cron_expression} />
+                    <Row label={<CronLabel />} value={props.cron_expression} />
+                    {props.cron_desc && <p className="props-modal__value props-modal__value--cron_desc">{
+                      props.cron_desc.split('\n').flatMap((line, i) => {
+                        const listMatch = line.match(/^(.*?)\[([^\]]+)\]/);
+                        if (listMatch) {
+                          const prefix = listMatch[1];
+                          const items = [...listMatch[2].matchAll(/'([^']+)'/g)].map(m => m[1]);
+                          return [
+                            ...(prefix ? [<span key={`${i}-pre`} className="props-modal__cron-prefix">{prefix}</span>] : []),
+                            <p key={`${i}-list`} className="props-modal__cron-list">{items.map((item, j) => <React.Fragment key={j}>{'-\u00A0\u00A0'}{item}<br/></React.Fragment>)}</p>,
+                          ];
+                        }
+                        return [<span key={i} className="props-modal__cron-prefix">{line}</span>];
+                      })
+                    }</p>}
                   </>
                 )}
               </div>
@@ -241,19 +310,19 @@ export default function TaskPropsModal({ task, props, isEditing, onClose, onEdit
 
           </div>
 
-          <div className="props-modal__right">
+          <div className={`props-modal__right${isEditing ? ' props-modal__right--editing' : ''}`}>
             {isEditing ? (
               <>
                 <div className="props-modal__tabs">
                   <button
                     className={`props-modal__tab${editState.active_tab === 'keep_files' ? ' props-modal__tab--active' : ''}`}
                     onClick={() => set('active_tab', 'keep_files')}>
-                    Не менять
+                    Сохранненные
                   </button>
                   <button
                     className={`props-modal__tab${editState.active_tab === 'attach' ? ' props-modal__tab--active' : ''}`}
                     onClick={() => set('active_tab', 'attach')}>
-                    Вложить
+                    Прикрепить
                   </button>
                   <button
                     className={`props-modal__tab${editState.active_tab === 'create' ? ' props-modal__tab--active' : ''}`}

@@ -14,6 +14,7 @@ from ..models import ConnectionModel
 from ..services.TaskLogService import TaskLogService
 from ..services.TaskFileService import TaskFileService
 import sys, traceback
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +48,7 @@ def sql_job_execute(script_file: TaskFileModel):
 
         count = 1
         for sql in script_list:
-            send_log(TASK_ID,f"Разовый запуск: внутренний скрипт № {count} страт", script_file.file_name)
+            send_log(TASK_ID,f"Разовый запуск: внутренний скрипт № {count} старт", script_file.file_name)
             
             execute_sql(sql)
 
@@ -65,7 +66,7 @@ def execute_sql(sql: str):
 
 
 def finish_run():
-    with taskDBSession.begin() as session:
+    with metaDbSession.begin() as session:
         try:
             session.execute(text("""
             UPDATE tasks
@@ -84,8 +85,8 @@ def interval_loop():
     while not stop_event.is_set():            
         now = time.monotonic()
 
-        if now - last_fallback >= INTERVAL_SEC:
-            logger.info(f"Sending heartbeat after {INTERVAL_SEC} seconds")
+        if now - last_fallback >= TTL_RUN_SECONDS - 5:
+            logger.info(f"Sending heartbeat after {TTL_RUN_SECONDS - 5} seconds")
             send_heartbeat()
             last_fallback = now
 
@@ -94,14 +95,14 @@ def interval_loop():
 
 
 def send_heartbeat():
-    with taskDBSession.begin() as session:
+    with metaDbSession.begin() as session:
         try:
             session.execute(text("""
             UPDATE tasks
-            SET run_expire_at = NOW() + (:ttl_seconds || ' seconds')::interval
+            SET run_expire_at = :now + :ttl_seconds * INTERVAL '1 second'
             WHERE task_id = :task_id
             """),
-            {"ttl_seconds": TTL_RUN_SECONDS, "task_id": TASK_ID})
+            {"now": datetime.now(), "ttl_seconds": TTL_RUN_SECONDS, "task_id": TASK_ID})
 
             
         except Exception as e:
@@ -173,8 +174,8 @@ if __name__ == "__main__":
         main()
         logger.info(f"PID {PID} has finished")
     except Exception as exc:
-        str = traceback.format_exc(limit=-3)
-        send_log(TASK_ID,f"Ошибка: {str}")
+        exc_str = traceback.format_exc(limit=-3)
+        send_log(TASK_ID,f"Ошибка: {exc_str}")
         traceback.print_exception(exc, limit=2, file=sys.stdout)
     finally: 
         finish_run()

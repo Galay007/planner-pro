@@ -12,6 +12,7 @@ class RunningStatusEnum(str, Enum):
     ERROR = "error"
     SKIPPED = "skipped"
     PENDING = "pending"
+    RUNNING = "running"
 
 class TriggerModeEnum(str, Enum):
     SCHEDULED = "scheduled"
@@ -71,7 +72,7 @@ class TaskRunning(Base):
     @computed_field
     @property
     def finished_str(self) -> Optional[str]:
-        return self.schedule_dt.strftime("%H:%M:%S") if self.finished_dt is not None else None
+        return self.finished_dt.strftime("%H:%M:%S") if self.finished_dt is not None else None
 
 
     

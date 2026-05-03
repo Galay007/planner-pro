@@ -24,9 +24,15 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'status',        label: 'Статус' },
 ];
 
-function fmt(val: string | number | null | undefined): string {
+const DT_COLS = new Set(['schedule_dt']);
+const NEXT_TRY_COL = new Set(['next_retry_at']);
+
+function fmt(val: string | number | null | undefined, key?: string): string {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string' && val.includes('T')) return val.replace('T', ' ').slice(0, 16);
+  if (key && DT_COLS.has(key) && typeof val === 'string' && val.includes('T'))
+    return val.replace('T', ' ').slice(0, 16);
+  if (key && NEXT_TRY_COL.has(key) && typeof val === 'string')
+    return val.slice(11, 19);
   return String(val);
 }
 
@@ -76,7 +82,7 @@ export default function RunningTable({ rows }: Props) {
             <tr key={i} className="running-table__tr">
               {COLUMNS.map(col => (
                 <td key={col.key} className={`running-table__td${col.key === 'status' ? ` running-table__td--status running-table__td--${row.status ?? ''}` : col.key === 'task_id' ? ' running-table__td--id' : col.key !== 'task_name' ? ' running-table__td--center' : ''}`}>
-                  {fmt(row[col.key])}
+                  {fmt(row[col.key], col.key)}
                 </td>
               ))}
             </tr>

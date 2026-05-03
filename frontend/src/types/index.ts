@@ -55,6 +55,7 @@ export interface TaskPropsOut {
   until_dt: string | null;
   connection_id: number | null;
   cron_expression: string | null;
+  cron_desc: string | null;
   task_type: TaskType;
   storage_path: string;
   file_names: string[] | null;

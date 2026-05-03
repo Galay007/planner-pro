@@ -12,22 +12,19 @@ from datetime import datetime, date
 from ..models.TaskModel import Task, TaskStatusEnum
 from ..models.TaskRunningModel import RunningStatusEnum
 from ..services.TaskRunningService import TaskRunningService
-
+from . import worker_services 
 from sqlalchemy import create_engine, text, bindparam
 from sqlalchemy.orm import sessionmaker
+import asyncio
 
 MAX_WORKERS = 5
 MAX_ATTEMPTS = 3
 WAKE_UP_INTERVAL_SEC = 10
 MIN_WAKE_UP_INTERVAL_SEC = 5
-FROZEN_TASK_INTERVAL_SEC = 50
 LISTEN_TIMEOUT_SEC = 5
 WAIT_SEC = 0.3
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s | %(levelname)s | %(threadName)s | %(message)s",
-)
+
 logger = logging.getLogger(__name__)
 
 
@@ -89,7 +86,7 @@ def dedublicate_runnings():
             
             session.execute(sql)
 
-            logger.info("Dedublicates successed in task_runnings")
+            logger.critical("Dedublicates successed in task_runnings")
 
         except Exception as e:
             logger.error(f"Database error when dedublicates running tasks: {e}", exc_info=True)
@@ -110,7 +107,7 @@ def refresh_task_runnings():
         try:
             task_running_service = TaskRunningService(session)
             task_running_service.refresh_runnings()
-            logger.info("Task_runnings refreshed in DB")
+            logger.critical("Task_runnings refreshed in DB")
         except Exception as e:
             logger.error(f"Error while refreshing task_runnings in DB: {e}", exc_info=True)
 
@@ -130,7 +127,8 @@ def skip_old_ids_first_launch():
                 old_ids AS (
                 SELECT id
                 FROM task_runnings tr 
-                WHERE tr.status = :pending
+                WHERE (tr.status = :pending
+                OR tr.status = :running)
                 AND tr.id NOT IN (SELECT id FROM cte)
                 AND tr.schedule_dt <= :now
                 )
@@ -140,67 +138,27 @@ def skip_old_ids_first_launch():
             
             params =  {"now": current_dt, 
                         "skipped": RunningStatusEnum.SKIPPED.value, 
-                        "pending": RunningStatusEnum.PENDING.value }
+                        "pending": RunningStatusEnum.PENDING.value,
+                        "running": RunningStatusEnum.RUNNING.value
+                        }
             
             session.execute(sql, params)
 
-            logger.info("Old run ids skipped when app launched")
+            logger.critical("Old run ids skipped when app launched")
 
         except Exception as e:
             logger.error(f"Database error when skipping old ids: {e}", exc_info=True)
-
-def check_status_frozen_tasks():
-    task_ids = []
-    session = SessionLocal()
-    try:    
-        row = session.execute(text("""
-            SELECT th.task_uid
-            FROM task_hist th
-            JOIN tasks t
-            ON t.task_uid = th.task_uid
-            WHERE t.status = :running                                   
-            FOR UPDATE SKIP LOCKED
-        """),{"running": TaskStatusEnum.RUNNING.value}).scalars()
-
-        task_uids = row.all()
-
-        session.commit()
-        
-        if len(task_uids) > 0: 
-            query = text("""
-                        UPDATE tasks
-                        SET status = CASE 
-                            WHEN on_control = 'on' THEN :active
-                            WHEN on_control = 'off' THEN :not_active
-                            ELSE status
-                        END
-                        WHERE task_uid IN :task_uids
-                        AND status = :running
-                    """
-                    ).bindparams(bindparam("task_uids", expanding=True))
-    
-
-            session.execute(query, {
-                "active": TaskStatusEnum.ACTIVE.value,
-                "not_active": TaskStatusEnum.NOT_ACTIVE.value,
-                "running": TaskStatusEnum.RUNNING.value,
-                "task_uids": task_uids
-            })
-
-            session.commit()
-
-            logger.info(f'{len(task_uids)} task ids were  unfrozen for next runs')
-    
-    except Exception as e:
-        logger.error(f"Database error while checking frozen runnings: {e}", exc_info=False)
 
 
 def claim_one_task(session):
     current_dt = datetime.now()
     worker_id = get_thread_num()
+    
+    logger.critical(f'Claim_one_task worker id {get_thread_num()} started work')
 
     try:    
         row = session.execute(text("""
+            WITH candidates AS (       
             SELECT
                 tr.id AS run_id,
                 tr.task_id,
@@ -209,36 +167,46 @@ def claim_one_task(session):
             JOIN tasks t ON tr.task_uid = t.task_uid
             WHERE tr.status = :pending
               AND t.on_control = 'on'
-              AND t.status != :running
-              AND tr.started_dt IS NULL
+              AND t.run_expire_at < :now
               AND tr.created_dt::date = :today
               AND tr.schedule_dt <= :now
-              AND (tr.attempt_count IS NULL OR tr.attempt_count <= :max_attempt)
+              AND (tr.attempt_count IS NULL OR tr.attempt_count < :max_attempt)
             ORDER BY tr.task_id
-            FOR UPDATE OF tr SKIP LOCKED
+            LIMIT 10
+            ),
+            locked AS (
+            SELECT task_id, run_id
+            FROM candidates
+            WHERE pg_try_advisory_xact_lock(task_uid) = true
             LIMIT 1
+            )           
+            UPDATE task_runnings tr
+            SET status = :running
+            FROM locked l
+            WHERE tr.status = :pending
+            AND tr.id = l.run_id
+            RETURNING l.task_id, l.run_id, tr.attempt_count, tr.trigger_mode
         """), {
             "today": current_dt.date(),
             "now": current_dt,
             "max_attempt": MAX_ATTEMPTS,
-            "running": TaskStatusEnum.RUNNING.value,
             "pending": RunningStatusEnum.PENDING.value,
+            "running": RunningStatusEnum.RUNNING.value
         }).fetchone()
 
-        if not row:
+        logger.critical(f'Row has {row} resultes worker id {worker_id}')
+        if row is None:
+            session.rollback()
             return None
+        
+        
+        logger.critical(f'Claim_one_task worker id {worker_id} row {row.task_id}')
 
         task_to_run = {
             "task_id": row.task_id,
-            "run_id": row.run_id}
-
-        session.execute(text("""
-            SELECT task_uid 
-            FROM task_hist
-            WHERE task_uid = :task_uid
-            FOR UPDATE SKIP LOCKED
-        """), {
-            "task_uid": row.task_uid})   
+            "run_id": row.run_id,
+            "attemps": row.attempt_count,
+            "mode": row.trigger_mode}
 
         session.execute(text("""
             UPDATE task_runnings
@@ -246,18 +214,22 @@ def claim_one_task(session):
                 worker_id = :worker_id
             WHERE id = :id
         """), {
-            "now": current_dt,
+            "now": datetime.now(),
             "worker_id": worker_id,
             "id": task_to_run["run_id"]})
-        
+
         with SessionLocal.begin() as task_session:
             task_session.execute(text("""
-            UPDATE tasks
-            SET status = :running
+            UPDATE tasks t
+            SET run_expire_at = :now + :sec * INTERVAL '1 second',
+            last_run_at = :now
             WHERE task_id = :task_id
             """), {
-            "running": TaskStatusEnum.RUNNING.value,
-            "task_id": task_to_run["task_id"]})
+            "now": datetime.now(),
+            "sec": Task.TTL_RUN_SECONDS,
+            "task_id": task_to_run["task_id"]
+            })
+            asyncio.run(worker_services.send_sse_request("task_update"))
 
         return task_to_run
 
@@ -266,50 +238,24 @@ def claim_one_task(session):
         return None
 
 
-def mark_task_done(session, task_id: int):
-    session.execute(
-        text("""
-            UPDATE tasks
-            SET status = 'done',
-                finished_at = now(),
-                last_error = NULL
-            WHERE id = :task_id
-        """),
-        {"task_id": task_id},
-    )
-
-
-def mark_task_retry(session, task_id: int, error_text: str):
-    session.execute(
-        text("""
-            UPDATE tasks
-            SET status = 'retry',
-                attempt_count = COALESCE(attempt_count, 0) + 1,
-                schedule_dt = now() + interval '30 seconds',
-                last_error = :error_text
-            WHERE id = :task_id
-        """),
-        {"task_id": task_id, "error_text": error_text[:1000]},
-    )
-
-
 def process_task(session, task):
     """
     Здесь твоя реальная логика.
     Пока просто пример.
     """
     task_id = task["task_id"]
-    logger.info("Processing task id=%s", task_id)
+    logger.critical("Processing task id=%s", task_id)
 
 
     time.sleep(2)
 
-    logger.info("Finished task id=%s", task_id)
+    logger.critical("Finished task id=%s", task_id)
 
 
 def worker_job():
     time.sleep(random.uniform(0, 0.02))
     claimed_task = False
+    is_successed = False
     global current_workers
     global available_tasks
 
@@ -320,71 +266,76 @@ def worker_job():
         session = SessionLocal()
         task = claim_one_task(session)
 
-        if task is None:
-            update_available_tasks()
-            logger.debug(f"Worker_id {get_thread_num()} - claimed task is none. AVAILABLE tasks amount {available_tasks}")
-            return
+        if task is not None:
 
-        claimed_task = True
-        logger.debug(f'Worker_id {get_thread_num()}, get run id {task["run_id"]} with task id {task["task_id"]}')
+            with active_workers_lock:
+                if claimed_task and available_tasks > 0:
+                    available_tasks -= 1
+            logger.warning(f'Worker_id {get_thread_num()}, get run id {task["run_id"]} with task id {task["task_id"]}')
 
-        try:
-            #     process_task(session, task)
-            #     mark_task_done(session, task)
             session.commit()
-            with SessionLocal.begin() as success_session:
-                success_session.execute(text("""
-                                UPDATE task_runnings 
-                                SET finished_dt = :now,
-                                status = :success
-                                WHERE id = :id                
-                                """), {
-                                    "now": datetime.now(),
-                                    "success": RunningStatusEnum.SUCCESS.value,
-                                    "id": task["run_id"]
-                                    })
-            
-                with active_workers_lock:
-                    if claimed_task and available_tasks > 0:
-                        available_tasks -= 1
-                        logger.debug(f"Worker_id {get_thread_num()} successed his job")
-        
-        except Exception as exc:
-            logger.exception(f'Worker_id {get_thread_num()} failed task_id={task["task_id"]}: {exc}')
+            is_successed = worker_services.schedule_execute_task(task["task_id"], int(task.get("attemps") or 0) + 1, task["mode"])
 
-            with SessionLocal.begin() as fail_session:
-                fail_session.execute(text("""
-                    UPDATE task_runnings
-                    SET attempt_count = COALESCE(attempt_count, 0) + 1,
-                        schedule_dt = now() + interval '30 seconds',
-                        next_retry_at = now() + interval '30 seconds'
-                    WHERE task_id = :task_id
-                """), {
-                    "task_id": task["task_id"]
-                })
-        
+            logger.warning(f'Worker_id {get_thread_num()}, finished task id {task["task_id"]} with is_successed result {is_successed}')
+
+            if not is_successed:
+                with SessionLocal.begin() as fail_session:
+                    fail_session.execute(text("""
+                        UPDATE task_runnings
+                        SET attempt_count = COALESCE(attempt_count, 0) + 1,
+                            schedule_dt = CASE WHEN COALESCE(attempt_count, 0) + 1 = :max_attempt THEN schedule_dt
+                            ELSE :now + interval '30 seconds'
+                            END,
+                            next_retry_at = CASE WHEN COALESCE(attempt_count, 0) + 1 = :max_attempt THEN NULL
+                            ELSE :now + interval '30 seconds'
+                            END,
+                            status = CASE WHEN COALESCE(attempt_count, 0) + 1 = :max_attempt THEN :error 
+                            ELSE :pending
+                            END
+                        WHERE id = :run_id  
+                    """), {
+                        "max_attempt": MAX_ATTEMPTS,
+                        "now": datetime.now(),
+                        "run_id": task["run_id"],
+                        "pending": RunningStatusEnum.PENDING.value,
+                        "error": RunningStatusEnum.ERROR.value
+                    })
+                    fail_session.commit()
+                    logger.warning(f'Worker_id {get_thread_num()}, set retry for {task["task_id"]} and run_id {task["run_id"]}')
+            else:
+                with SessionLocal.begin() as success_session: 
+                    success_session.execute(text("""
+                        UPDATE task_runnings 
+                        SET finished_dt = :now,
+                        status = :success
+                        WHERE id = :id                
+                        """), {
+                            "now": datetime.now(),
+                            "success": RunningStatusEnum.SUCCESS.value,
+                            "id": task["run_id"]
+                            })
+                    success_session.commit()            
+            
     except Exception as exc:
-        logger.exception(f"Worker failed before processing: {exc}")
+        logger.exception(f'Worker_id {get_thread_num()} failed task_id={task["task_id"]}: {exc}')
         session.rollback()
 
     finally:
-        session.execute(text("""
-                UPDATE tasks 
-                SET status = :active 
-                WHERE task_id = :task_id                
-                """), {
-                    "active": TaskStatusEnum.ACTIVE.value,
-                    "task_id": task["task_id"]
-                    })
-        session.commit()
-        session.close()
+        if task is not None:
+            with SessionLocal.begin() as final_session:
+                final_session.execute(text("""
+                        UPDATE tasks 
+                        SET run_expire_at = '1900-01-01' 
+                        WHERE task_id = :task_id 
+                    """), {
+                        "task_id": task["task_id"]
+                        })
+                final_session.commit()
+                asyncio.run(worker_services.send_sse_request("task_update"))
 
         with active_workers_lock:
             current_workers -= 1
-            logger.debug(f"Worker_id {get_thread_num()} - back to work")    
-
-        if claimed_task:
-            wake_up_workers.set()
+            logger.warning(f"Worker_id {get_thread_num()} - back to work and available {MAX_WORKERS - current_workers} workers")
             
 
 def get_available_tasks():
@@ -409,18 +360,17 @@ def get_available_tasks():
                         JOIN tasks t ON tr.task_uid = t.task_uid
                         WHERE 1 = 1
                         AND tr.status = :pending                        
-                        AND t.status != :running
+                        AND t.run_expire_at < :now
                         AND t.on_control = 'on'
-                        AND tr.started_dt IS NULL
                         AND tr.created_dt::date = :today
                         AND tr.schedule_dt <= :now
-                        AND (tr.attempt_count IS NULL OR tr.attempt_count <= :max_attempt)
+                        AND (tr.attempt_count IS NULL OR tr.attempt_count < :max_attempt)
                     ) sub
                     WHERE row_num = 1
                     ORDER BY task_id
                 """),
                 {"today": today, "now": current_dt, "max_attempt": MAX_ATTEMPTS, 
-                 "running": TaskStatusEnum.RUNNING.value, "pending": RunningStatusEnum.PENDING.value }
+                 "pending": RunningStatusEnum.PENDING.value }
             ).all()
 
         if not result:
@@ -443,12 +393,12 @@ def update_available_tasks():
     global available_tasks
     with active_workers_lock:
         available_tasks = get_available_tasks_cout()
-        logger.debug(f"AVAILABLE {available_tasks} tasks for run")
+        logger.warning(f"AVAILABLE {available_tasks} tasks for run")
 
         
 
 def dispatch_loop(executor: ThreadPoolExecutor):
-    logger.info("Dispatcher started")
+    logger.critical("Dispatcher started")
 
     while not shutdown_event.is_set():
         has_work = wake_up_workers.wait(timeout=WAIT_SEC)
@@ -464,55 +414,48 @@ def dispatch_loop(executor: ThreadPoolExecutor):
             free_workers = MAX_WORKERS - current_workers
 
         if free_workers <= 0:
-            logger.debug("All workers are busy")
+            logger.warning("All workers are busy")
             continue
 
         for _ in range(min(free_workers, available_tasks)):
             executor.submit(worker_job)
 
-    logger.info("Dispatcher stopped")
+    logger.critical("Dispatcher stopped")
 
 
 def interval_loop():
     
     launch_date = datetime.now().date()
-    logger.info(f"Interval loop started with every {WAKE_UP_INTERVAL_SEC} sec")
+    logger.critical(f"Interval loop started with every {WAKE_UP_INTERVAL_SEC} sec")
 
-    check_status_frozen_tasks()
     refresh_task_runnings()
     dedublicate_runnings()
     skip_old_ids_first_launch()
 
     last_fallback = time.monotonic()
     min_last_fallback = time.monotonic()
-    frozen_fallback = time.monotonic()
 
     while not shutdown_event.is_set():            
         now = time.monotonic()
         
         if now - last_fallback >= WAKE_UP_INTERVAL_SEC:
             update_available_tasks()
-            refresh_task_runnings()
+            print(f"available {available_tasks} tasks and available {MAX_WORKERS - current_workers} workers")
             if available_tasks > 0:
-                logger.info(f"Wake-up after {WAKE_UP_INTERVAL_SEC} interval time")
+                logger.critical(f"Wake-up after {WAKE_UP_INTERVAL_SEC} interval time")
                 wake_up_workers.set()
             last_fallback = now
             min_last_fallback = now
 
         if available_tasks > 0 and (MAX_WORKERS - current_workers) > 0:
             if now - min_last_fallback >= MIN_WAKE_UP_INTERVAL_SEC:
-                logger.info(f"Wake-up again as available tasks still {available_tasks}")
+                logger.critical(f"Wake-up again as available tasks still {available_tasks}")
                 wake_up_workers.set()
                 min_last_fallback = now
-        
-        if now - frozen_fallback >= FROZEN_TASK_INTERVAL_SEC:
-            logger.info("Run script for clear status of frozen task")
-            check_status_frozen_tasks()
-            frozen_fallback = now
 
         now_date = datetime.now().date()
         if now_date > launch_date:
-            logger.info(f"New day has come: {now_date}")
+            logger.critical(f"New day has come: {now_date}")
             refresh_task_runnings()
             launch_date = now_date
 
@@ -521,7 +464,7 @@ def interval_loop():
 
 
 def handle_signal(signum, frame):
-    logger.info("Received signal %s, shutting down...", signum)
+    logger.critical("Received signal %s, shutting down...", signum)
     shutdown_event.set()
     wake_up_workers.set()
 
@@ -543,8 +486,8 @@ def main():
     )
     dispatcher_thread.start()
 
-    logger.info("Worker service started")
-    logger.info("Threads: main(listener) + dispatcher + up to %s workers", MAX_WORKERS)
+    logger.critical("Worker service started")
+    logger.critical("Threads: main(listener) + dispatcher + up to %s workers", MAX_WORKERS)
 
     try:
         interval_loop()
@@ -558,33 +501,19 @@ def main():
         if dispatcher_thread and dispatcher_thread.is_alive():
             dispatcher_thread.join(timeout=5)
 
-        # import os
-        # import time
-        # def force_exit():
-        #     time.sleep(10)
-        #     logger.error("Force exit after timeout")
-        #     os._exit(1)
+        import os
+        import time
+        def force_exit():
+            time.sleep(10)
+            logger.error("Force exit after timeout")
+            os._exit(1)
         
-        # force_exit_thread = threading.Thread(target=force_exit, daemon=True)
-        # force_exit_thread.start()
+        force_exit_thread = threading.Thread(target=force_exit, daemon=True)
+        force_exit_thread.start()
 
-        # logger.info("Worker service stopped")
+        logger.critical("Worker service stopped")
 
 if __name__ == "__main__":
     main()
 
 
-    # Ручное управление 
-    # def process_with_manual_commit():
-    # session = SessionLocal()
-    # try:
-    #     result = do_something(session)
-        
-    #     session.commit()
-    #     return result
-        
-    # except Exception:
-    #     session.rollback()
-    #     raise
-    # finally:
-    #     session.close()

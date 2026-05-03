@@ -1,16 +1,35 @@
 import { Calendar, DatabaseBackup, CalendarSync, Link2, Activity } from "lucide-react";
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { startTransition, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitcher from './ThemeSwitcher';
 import './Sidebar.css';
 
 const navItems = [
-  { to: '/', label: 'Планировщик', icon: Calendar },
-  { to: '/connections', label: 'Подключения', icon: Link2 },
-  { to: '/migration-db', label: 'Миграция БД', icon: DatabaseBackup },
-  { to: '/migration-csv', label: 'Миграция CSV', icon: CalendarSync },
-  { to: '/monitoring', label: 'Мониторинг', icon: Activity },
+  { to: '/', label: 'Планировщик', icon: Calendar, end: true },
+  { to: '/connections', label: 'Подключения', icon: Link2, end: false },
+  { to: '/migration-db', label: 'Миграция БД', icon: DatabaseBackup, end: false },
+  { to: '/migration-csv', label: 'Миграция CSV', icon: CalendarSync, end: false },
+  { to: '/monitoring', label: 'Мониторинг', icon: Activity, end: false },
 ];
+
+function NavItem({ to, label, icon: Icon, end, collapsed }: {
+  to: string; label: string; icon: React.ComponentType<{ size: number }>;
+  end: boolean; collapsed: boolean;
+}) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isActive = end ? pathname === to : pathname.startsWith(to);
+  return (
+    <button
+      className={`sidebar__link${isActive ? ' sidebar__link--active' : ''}`}
+      title={collapsed ? label : undefined}
+      onClick={() => startTransition(() => navigate(to))}
+    >
+      <Icon size={22} />
+      <span className="sidebar__label">{label}</span>
+    </button>
+  );
+}
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(
@@ -35,18 +54,14 @@ export default function Sidebar() {
 
       <nav className="sidebar__nav">
         {navItems.map((item) => (
-          <NavLink
+          <NavItem
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) =>
-              `sidebar__link${isActive ? ' sidebar__link--active' : ''}`
-            }
-            title={collapsed ? item.label : undefined}
-          >
-            <item.icon size={22}  />
-            <span className="sidebar__label">{item.label}</span>
-          </NavLink>
+            label={item.label}
+            icon={item.icon}
+            end={item.end}
+            collapsed={collapsed}
+          />
         ))}
       </nav>
 
